@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.OnBackPressedCallback
@@ -12,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import com.looker.droidify.database.CursorOwner
@@ -25,6 +27,8 @@ import com.looker.droidify.ui.favourites.FavouritesFragment
 import com.looker.droidify.ui.repository.EditRepositoryFragment
 import com.looker.droidify.ui.repository.RepositoriesFragment
 import com.looker.droidify.ui.repository.RepositoryFragment
+import com.looker.droidify.jinsoningen.JinsoningenViewTheme
+import com.looker.droidify.ui.jinsoningen.JinsoningenUiFragment
 import com.looker.droidify.ui.settings.SettingsFragment
 import com.looker.droidify.ui.tabsFragment.TabsFragment
 import com.looker.droidify.utility.common.DeeplinkType
@@ -116,7 +120,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         collectChange()
+        // shiroikuma fork: the tinting inflater MUST go on before super.onCreate — a Factory2 can
+        // only be set once per LayoutInflater, and AppCompat installs its own in there. From this
+        // point every view inflated in this Activity, RecyclerView rows and dialogs included,
+        // comes out already wearing the 白い熊 人造人間 knobs.
+        JinsoningenViewTheme.install(this)
         super.onCreate(savedInstanceState)
+        JinsoningenViewTheme.applyWindow(this)
         val rootView = FrameLayout(this).apply { id = R.id.main_content }
         addContentView(
             rootView,
@@ -131,6 +141,26 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addFragmentOnAttachListener { _, _ ->
             hideKeyboard()
         }
+
+        // shiroikuma fork: apply the live knobs over every legacy screen once its hierarchy
+        // exists. The tinting inflater only sees views AppCompat substitutes (TextView, Button,
+        // …) — Material widgets and plain ViewGroups are created by the default inflater and come
+        // back null from delegate.createView, so they never reach it. Those still come out
+        // black-yellow from Theme.Main.Jinsoningen; this pass is what puts the *current* knob
+        // values on them.
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            object : FragmentManager.FragmentLifecycleCallbacks() {
+                override fun onFragmentViewCreated(
+                    fm: FragmentManager,
+                    f: Fragment,
+                    v: View,
+                    savedInstanceState: Bundle?,
+                ) {
+                    JinsoningenViewTheme.paintTree(v)
+                }
+            },
+            true,
+        )
 
         if (savedInstanceState == null) {
             cursorOwner = CursorOwner()
@@ -314,6 +344,9 @@ class MainActivity : AppCompatActivity() {
 
     fun navigateRepositories() = pushFragment(RepositoriesFragment())
     fun navigatePreferences() = pushFragment(SettingsFragment.newInstance())
+
+    /** shiroikuma fork: the 白い熊 人造人間 UI page — from Settings, or a long-press on the cog. */
+    fun navigateJinsoningenUi() = pushFragment(JinsoningenUiFragment.newInstance())
     fun navigateAddRepository(repoAddress: String? = null) =
         pushFragment(EditRepositoryFragment(null, repoAddress))
 

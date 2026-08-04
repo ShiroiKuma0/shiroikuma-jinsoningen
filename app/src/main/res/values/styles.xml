@@ -200,8 +200,27 @@
         <item name="android:fitsSystemWindows">true</item>
     </style>
 
+    <!-- shiroikuma fork: every legacy MaterialAlertDialog (the repository editor, MessageDialog,
+         the Shizuku error dialog, the app-detail prompts) resolves its look through here, so the
+         house yellow edge is added once rather than at each builder. -->
     <style name="Theme.Alert" parent="ThemeOverlay.Material3.MaterialAlertDialog.Centered">
         <item name="android:dialogCornerRadius" tools:targetApi="p">@dimen/shape_large_corner</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/Theme.Alert.Body</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/Theme.Alert.Title</item>
+        <item name="android:background">@drawable/jinsoningen_dialog_background</item>
+        <item name="android:textColorPrimary">@color/jinsoningen_yellow</item>
+        <item name="colorSurface">@color/jinsoningen_black</item>
+        <item name="colorOnSurface">@color/jinsoningen_yellow</item>
+        <item name="colorOnSurfaceVariant">@color/jinsoningen_yellow_dim</item>
+        <item name="colorPrimary">@color/jinsoningen_yellow</item>
+    </style>
+
+    <style name="Theme.Alert.Title" parent="MaterialAlertDialog.Material3.Title.Text.CenterStacked">
+        <item name="android:textColor">@color/jinsoningen_yellow</item>
+    </style>
+
+    <style name="Theme.Alert.Body" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:textColor">@color/jinsoningen_yellow</item>
     </style>
 
     <style name="Theme.EditText" parent="Widget.Material3.TextInputLayout.FilledBox">
