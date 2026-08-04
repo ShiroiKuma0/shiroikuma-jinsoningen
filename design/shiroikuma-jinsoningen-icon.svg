@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- 白い熊 人造人間 (shiroikuma-jinsoningen): Droid-ify's droid-head + download-arrow mark,
+       traced as stroke-only line-art, house black-yellow (#FFFF00 on #000000).
+       Proportions taken from upstream's own vector (ic_launcher_foreground.xml), scaled x5.235
+       about the dome centre: dome r118 with a 242° sweep opening downward, stroke 29% of the
+       radius as upstream draws it; antennae at 45°, half the dome's weight; a broad, squat
+       arrowhead whose barbs run at 45° and whose tip drops just below the dome. -->
+  <rect x="0" y="0" width="512" height="512" fill="#000000"/>
+  <g transform="translate(0,15)" fill="none" stroke="#FFFF00"
+     stroke-linecap="round" stroke-linejoin="round">
+    <!-- droid head: the dome -->
+    <path d="M 155,293 A 118,118 0 1 1 357,293" stroke-width="34"/>
+    <!-- antennae -->
+    <path d="M 365,117 L 341,140" stroke-width="18"/>
+    <path d="M 147,117 L 171,140" stroke-width="18"/>
+    <!-- eyes -->
+    <circle cx="220" cy="204" r="12" fill="#FFFF00" stroke="none"/>
+    <circle cx="292" cy="204" r="12" fill="#FFFF00" stroke="none"/>
+    <!-- download arrow: stem + chevron, drawn as two strokes so every end is a rounded tip.
+         Scaled about its own tip so the tip still drops below the dome while the barbs stay
+         clear of the dome's lower ends. Stroke 26 = 0.76 of the dome's 34, which is the weight
+         ratio upstream itself draws (26.2 vs 34.6 at our scale). -->
+    <path d="M 256,280 L 256,373" stroke-width="26"/>
+    <path d="M 213,327 L 256,373 L 299,327" stroke-width="26"/>
+  </g>
+</svg>
