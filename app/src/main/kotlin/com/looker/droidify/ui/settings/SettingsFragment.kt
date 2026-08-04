@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.looker.droidify.MainActivity
 import com.looker.droidify.compose.settings.SettingsScreen
 import com.looker.droidify.compose.settings.SettingsViewModel
 import com.looker.droidify.compose.theme.DroidifyTheme
@@ -47,6 +48,9 @@ class SettingsFragment : Fragment() {
                     SettingsScreen(
                         viewModel = viewModel,
                         onBackClick = { activity?.onBackPressedDispatcher?.onBackPressed() },
+                        onJinsoningenUiClick = {
+                            (activity as? MainActivity)?.navigateJinsoningenUi()
+                        },
                     )
                 }
             }

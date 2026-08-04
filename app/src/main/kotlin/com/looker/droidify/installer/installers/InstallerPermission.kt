@@ -15,8 +15,42 @@ import kotlin.coroutines.resume
 
 private const val SHIZUKU_PERMISSION_REQUEST_CODE = 87263
 
+/**
+ * shiroikuma fork: our own Shizuku, 白い熊 雫 — the one this app prefers to talk to.
+ *
+ * It is the `shizukuplus` flavor of shiroikuma-shizuku, which installs **beside** stock Shizuku.
+ * Because both can be present at once it deliberately does not define
+ * `moe.shizuku.manager.permission.API_V23` (that would fail install with -126, duplicate
+ * permission); it declares `af.shizuku.plus.permission.API_V23` instead. So neither the package
+ * name nor the permission name that upstream resolves by will find it, and the resolution below
+ * looks for it by package first.
+ */
+private const val SHIROIKUMA_SHIZUKU_PACKAGE = "shiroikuma.shizuku"
+
+/** The client permission 白い熊 雫 grants, in place of the stock one. */
+const val SHIROIKUMA_SHIZUKU_PERMISSION = "af.shizuku.plus.permission.API_V23"
+
+/**
+ * Resolution order, per 白い熊: **ours first, the legacy one only as a fallback.**
+ *
+ * 1. `shiroikuma.shizuku`, if installed;
+ * 2. whichever package declares the stock client permission (stock Shizuku, Sui, a rename);
+ * 3. `moe.shizuku.privileged.api`, the hardcoded stock package.
+ *
+ * The binder itself is package-agnostic — a manager pushes it to our `ShizukuProvider` whoever it
+ * is — so this ordering decides which app we *name*: what "Open Shizuku" launches and what the
+ * installed-check believes.
+ */
+private fun Context.preferredShizukuPackage(): String? = when {
+    isPackageInstalled(SHIROIKUMA_SHIZUKU_PACKAGE) -> SHIROIKUMA_SHIZUKU_PACKAGE
+    else -> shizukuPermissionInfo()?.packageName
+}
+
+private fun Context.isPackageInstalled(packageName: String) =
+    packageManager.getPackageInfoCompat(packageName) != null
+
 fun launchShizuku(context: Context) {
-    val packageName = context.shizukuPackageName()
+    val packageName = context.preferredShizukuPackage()
         ?: ShizukuProvider.MANAGER_APPLICATION_ID
     val activities = context.packageManager.getLauncherActivities(packageName)
     if (activities.isEmpty()) return
@@ -42,10 +76,14 @@ private fun Context.shizukuPermissionInfo() =
         packageManager.getPermissionInfo(ShizukuProvider.PERMISSION, 0)
     }.getOrNull()
 
-private fun Context.shizukuPackageName() = shizukuPermissionInfo()?.packageName
-
+/**
+ * shiroikuma fork: 白い熊 雫 counts as installed even though it declares neither the stock
+ * package name nor the stock permission — checked first, so it is what an "is Shizuku there?"
+ * question answers with.
+ */
 fun isShizukuInstalled(context: Context) =
-    context.shizukuPermissionInfo() != null ||
+    context.isPackageInstalled(SHIROIKUMA_SHIZUKU_PACKAGE) ||
+        context.shizukuPermissionInfo() != null ||
         context.packageManager.getPackageInfoCompat(ShizukuProvider.MANAGER_APPLICATION_ID) != null
 
 fun isShizukuAlive() = Shizuku.pingBinder()

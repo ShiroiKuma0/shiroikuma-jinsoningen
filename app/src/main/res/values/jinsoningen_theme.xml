@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  白い熊 人造人間 (shiroikuma-jinsoningen) fork: the house theme for the legacy View screens.
+
+  Upstream's MainActivity calls setTheme() at runtime with one of Theme.Main.{Light,Dark,Amoled,
+  Dynamic*}, every one of which maps the Material attributes onto Droid-ify's green md_theme_*
+  palette. That call happens after the manifest theme is applied, so it wins — which is why the
+  main window stayed green even with the launcher theme seeded black. `Configuration.getThemeRes`
+  is patched to return this style for every Theme choice instead.
+
+  It inherits Theme.Main.Amoled on purpose: that already carries upstream's structural bits — the
+  EditText / AlertDialog / AppBarLayout / Card widget styles and the headline text appearances —
+  so a rebase that changes any of those changes ours too. We override only the colours.
+
+  These are STATIC values: an Android theme is resource-backed and cannot carry the runtime knobs.
+  They are the floor, seeded to the house palette so nothing ever renders in Material's own
+  colours; the live knobs are applied on top by JinsoningenViewTheme and by the patched
+  Context.getColorFromAttr.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <color name="jinsoningen_black">#FF000000</color>
+    <color name="jinsoningen_yellow">#FFFFFF00</color>
+    <color name="jinsoningen_yellow_dim">#FFB3B300</color>
+    <color name="jinsoningen_red">#FFFF3B30</color>
+
+    <style name="Theme.Main.Jinsoningen" parent="Theme.Main.Amoled">
+        <item name="colorPrimary">@color/jinsoningen_yellow</item>
+        <item name="colorOnPrimary">@color/jinsoningen_black</item>
+        <item name="colorPrimaryContainer">@color/jinsoningen_black</item>
+        <item name="colorOnPrimaryContainer">@color/jinsoningen_yellow</item>
+        <item name="colorSecondary">@color/jinsoningen_yellow</item>
+        <item name="colorOnSecondary">@color/jinsoningen_black</item>
+        <item name="colorSecondaryContainer">@color/jinsoningen_black</item>
+        <item name="colorOnSecondaryContainer">@color/jinsoningen_yellow</item>
+        <item name="colorTertiary">@color/jinsoningen_yellow</item>
+        <item name="colorOnTertiary">@color/jinsoningen_black</item>
+        <item name="colorTertiaryContainer">@color/jinsoningen_black</item>
+        <item name="colorOnTertiaryContainer">@color/jinsoningen_yellow</item>
+
+        <item name="colorError">@color/jinsoningen_red</item>
+        <item name="colorOnError">@color/jinsoningen_black</item>
+        <item name="colorErrorContainer">@color/jinsoningen_black</item>
+        <item name="colorOnErrorContainer">@color/jinsoningen_red</item>
+
+        <item name="android:colorBackground">@color/jinsoningen_black</item>
+        <item name="android:windowBackground">@color/jinsoningen_black</item>
+        <item name="colorOnBackground">@color/jinsoningen_yellow</item>
+        <item name="colorSurface">@color/jinsoningen_black</item>
+        <item name="colorOnSurface">@color/jinsoningen_yellow</item>
+        <item name="colorSurfaceVariant">@color/jinsoningen_black</item>
+        <item name="colorOnSurfaceVariant">@color/jinsoningen_yellow_dim</item>
+        <item name="colorOutline">@color/jinsoningen_yellow</item>
+        <item name="colorOutlineVariant">@color/jinsoningen_yellow</item>
+        <item name="colorSurfaceInverse">@color/jinsoningen_yellow</item>
+        <item name="colorOnSurfaceInverse">@color/jinsoningen_black</item>
+        <item name="colorPrimaryInverse">@color/jinsoningen_yellow</item>
+
+        <item name="colorPrimaryFixed">@color/jinsoningen_black</item>
+        <item name="colorOnPrimaryFixed">@color/jinsoningen_yellow</item>
+        <item name="colorPrimaryFixedDim">@color/jinsoningen_black</item>
+        <item name="colorOnPrimaryFixedVariant">@color/jinsoningen_yellow</item>
+        <item name="colorSecondaryFixed">@color/jinsoningen_black</item>
+        <item name="colorOnSecondaryFixed">@color/jinsoningen_yellow</item>
+        <item name="colorSecondaryFixedDim">@color/jinsoningen_black</item>
+        <item name="colorOnSecondaryFixedVariant">@color/jinsoningen_yellow</item>
+        <item name="colorTertiaryFixed">@color/jinsoningen_black</item>
+        <item name="colorOnTertiaryFixed">@color/jinsoningen_yellow</item>
+        <item name="colorTertiaryFixedDim">@color/jinsoningen_black</item>
+        <item name="colorOnTertiaryFixedVariant">@color/jinsoningen_yellow</item>
+
+        <item name="colorSurfaceDim">@color/jinsoningen_black</item>
+        <item name="colorSurfaceBright">@color/jinsoningen_black</item>
+        <item name="colorSurfaceContainerLowest">@color/jinsoningen_black</item>
+        <item name="colorSurfaceContainerLow">@color/jinsoningen_black</item>
+        <item name="colorSurfaceContainer">@color/jinsoningen_black</item>
+        <item name="colorSurfaceContainerHigh">@color/jinsoningen_black</item>
+        <item name="colorSurfaceContainerHighest">@color/jinsoningen_black</item>
+
+        <item name="android:textColorPrimary">@color/jinsoningen_yellow</item>
+        <item name="android:textColorSecondary">@color/jinsoningen_yellow_dim</item>
+        <item name="android:textColorTertiary">@color/jinsoningen_yellow_dim</item>
+        <item name="android:textColorHint">@color/jinsoningen_yellow_dim</item>
+
+        <item name="android:statusBarColor">@color/jinsoningen_black</item>
+        <item name="android:navigationBarColor">@color/jinsoningen_black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+    </style>
+
+</resources>

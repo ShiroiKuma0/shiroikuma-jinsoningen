@@ -10,6 +10,7 @@ import com.google.android.material.color.MaterialColors
 import com.looker.droidify.R
 import com.looker.droidify.database.Database
 import com.looker.droidify.databinding.RepositoryItemBinding
+import com.looker.droidify.jinsoningen.JinsoningenViewTheme
 import com.looker.droidify.model.Repository
 import com.looker.droidify.widget.CursorRecyclerAdapter
 
@@ -69,12 +70,20 @@ class RepositoriesAdapter(
         holder.repoName.text = repository.name
         holder.repoDesc.text = repository.description.trim()
 
-        val colorOnSurface = MaterialColors.getColor(
+        // shiroikuma fork: routed through the knob mapping, like every other legacy colour.
+        // MaterialColors reads the resource-backed theme, which cannot carry our runtime values.
+        val colorOnSurface = JinsoningenViewTheme.attrColor(
+            holder.itemView.context,
+            com.google.android.material.R.attr.colorOnSurface,
+        ) ?: MaterialColors.getColor(
             holder.itemView,
             com.google.android.material.R.attr.colorOnSurface,
             Color.BLACK,
         )
-        val colorSurfaceContainer = MaterialColors.getColor(
+        val colorSurfaceContainer = JinsoningenViewTheme.attrColor(
+            holder.itemView.context,
+            com.google.android.material.R.attr.colorSurfaceContainer,
+        ) ?: MaterialColors.getColor(
             holder.itemView,
             com.google.android.material.R.attr.colorSurfaceContainer,
             Color.WHITE,
