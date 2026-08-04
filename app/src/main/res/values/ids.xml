@@ -9,5 +9,7 @@
     <item name="toolbar_sync" type="id" />
     <!-- shiroikuma fork: the settings cog needs an id so its view can carry a long-press. -->
     <item name="toolbar_settings" type="id" />
+    <!-- Marks a RecyclerView whose typography hook is already attached. -->
+    <item name="jinsoningen_typography_hook" type="id" />
 
 </resources>
