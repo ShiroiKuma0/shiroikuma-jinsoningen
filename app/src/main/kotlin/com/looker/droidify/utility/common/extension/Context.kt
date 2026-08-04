@@ -19,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import com.looker.droidify.R
+import com.looker.droidify.jinsoningen.JinsoningenViewTheme
 import com.looker.droidify.utility.common.log
 
 inline val Context.clipboardManager: ClipboardManager?
@@ -115,7 +116,15 @@ fun Context.getDrawableCompat(@DrawableRes resId: Int = R.drawable.background_bo
         ),
     ) { "Cannot find drawable, ID: $resId" }
 
+/**
+ * shiroikuma fork: the legacy View screens resolve every colour through here, so this is where
+ * they meet the 白い熊 人造人間 knobs. A Material/framework colour attribute we own is answered
+ * from the live UI state; anything else falls through to the real theme lookup unchanged, so an
+ * attribute we have not mapped still resolves exactly as upstream intended.
+ */
 fun Context.getColorFromAttr(@AttrRes attrResId: Int): ColorStateList {
+    JinsoningenViewTheme.attrColorStateList(this, attrResId)?.let { return it }
+
     val typedArray = obtainStyledAttributes(intArrayOf(attrResId))
     return try {
         typedArray.getColorStateList(0) ?: run {

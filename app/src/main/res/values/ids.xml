@@ -7,5 +7,7 @@
     <item name="main_content" type="id" />
     <item name="toolbar_search" type="id" />
     <item name="toolbar_sync" type="id" />
+    <!-- shiroikuma fork: the settings cog needs an id so its view can carry a long-press. -->
+    <item name="toolbar_settings" type="id" />
 
 </resources>

@@ -8,7 +8,10 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import com.looker.droidify.jinsoningen.LocalJinsoningenUi
+import com.looker.droidify.jinsoningen.rememberJinsoningenUiState
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -238,15 +241,32 @@ private val highContrastDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDarkHighContrast,
 )
 
+/**
+ * shiroikuma fork: the house black-yellow theme.
+ *
+ * Every colour, font and size comes from [JinsoningenUiState], which writes through to
+ * SharedPreferences *and* to Compose state — so dragging a slider on the 白い熊 人造人間 UI page
+ * repaints the whole app underneath it. That is what "always everything with preview" means here:
+ * the app is its own preview.
+ *
+ * [useHouseTheme] exists so a surface can still ask for stock Material (nothing does today).
+ * Upstream's own light/dark/dynamic schemes are kept above, unused but un-diverged, so a rebase
+ * that touches them stays a clean merge.
+ */
 @Composable
 fun DroidifyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    useHouseTheme: Boolean = true,
     content:
     @Composable()
     () -> Unit,
 ) {
+    val ui = rememberJinsoningenUiState(LocalContext.current)
+
     val colorScheme = when {
+        useHouseTheme -> ui.colorScheme()
+
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -256,9 +276,12 @@ fun DroidifyTheme(
         else -> lightScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content,
-    )
+    CompositionLocalProvider(LocalJinsoningenUi provides ui) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = if (useHouseTheme) ui.typography(Typography) else Typography,
+            shapes = if (useHouseTheme) ui.shapes() else MaterialTheme.shapes,
+            content = content,
+        )
+    }
 }

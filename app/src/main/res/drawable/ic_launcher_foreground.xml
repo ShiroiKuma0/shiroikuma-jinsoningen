@@ -1,17 +1,28 @@
 <!-- 白い熊 人造人間: the droid-head + download-arrow mark traced as stroke-only line-art in the
-     house yellow. Source of truth: design/shiroikuma-jinsoningen-icon.svg, whose 512x512 canvas
-     maps onto the central 72x72 safe zone of this 108x108 adaptive viewport
-     (scale 72/512 = 0.140625, offset 18 + the design's own 15px vertical centring). -->
+     house yellow. Path data is shared with design/shiroikuma-jinsoningen-icon.svg; only the
+     framing differs.
+
+     An adaptive icon is cropped by the launcher's mask, so its artwork is meant to FILL the
+     central 72x72 safe zone rather than sit inside it — that is why an icon inset within the
+     safe zone renders visibly smaller than its neighbours in a launcher or file list. The
+     artwork measures 236x289 in the shared 512 coordinate space, so:
+
+         scale = 72 / 289 = 0.2491   (289 tall becomes exactly the 72 safe zone)
+         the artwork centre (256, 241.5) is placed at the icon centre (54, 54):
+         translateX = 54 - 0.2491 * 256   = -9.77
+         translateY = 54 - 0.2491 * 241.5 = -6.16
+
+     Width lands at 236 * 0.2491 = 58.8 of the 72, so the mask never clips it sideways. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group
-        android:scaleX="0.140625"
-        android:scaleY="0.140625"
-        android:translateX="18"
-        android:translateY="20.109375">
+        android:scaleX="0.2491"
+        android:scaleY="0.2491"
+        android:translateX="-9.77"
+        android:translateY="-6.16">
         <!-- droid head: the dome, a 242 degree sweep opening downward -->
         <path
             android:pathData="M155,293 A118,118,0,1,1,357,293"

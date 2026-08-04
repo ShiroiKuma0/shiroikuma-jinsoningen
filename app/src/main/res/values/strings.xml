@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="application_name" translatable="false">白い熊 人造人間</string>
+    <!-- shiroikuma fork: the house UI page. Not translatable — it carries the app's own name. -->
+    <string name="jinsoningen_ui" translatable="false">白い熊 人造人間 UI</string>
+    <string name="jinsoningen_ui_DESC">Colours, fonts, sizes, spacing — and Export / Import</string>
     <string name="cleartext_allowed" translatable="false">false</string>
     <string name="action_failed">Action failed</string>
     <string name="add_repository">Add repository</string>

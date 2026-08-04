@@ -5,9 +5,15 @@
        about the dome centre: dome r118 with a 242° sweep opening downward, stroke 29% of the
        radius as upstream draws it; antennae at 45°, half the dome's weight; a broad, squat
        arrowhead whose barbs run at 45° and whose tip drops just below the dome. -->
+  <!-- The path coordinates below are the one source of truth; each output frames them itself.
+       Here the artwork is scaled about its own centre (256,241.5) to fill ~78% of the square,
+       which is what the launcher shows for the legacy mipmaps. The adaptive foreground in
+       app/src/main/res/drawable/ic_launcher_foreground.xml carries its own, larger transform,
+       because an adaptive icon is cropped by the launcher's mask and is meant to fill the whole
+       72x72 safe zone. -->
   <rect x="0" y="0" width="512" height="512" fill="#000000"/>
-  <g transform="translate(0,15)" fill="none" stroke="#FFFF00"
-     stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(256,256) scale(1.382) translate(-256,-241.5)" fill="none"
+     stroke="#FFFF00" stroke-linecap="round" stroke-linejoin="round">
     <!-- droid head: the dome -->
     <path d="M 155,293 A 118,118 0 1 1 357,293" stroke-width="34"/>
     <!-- antennae -->

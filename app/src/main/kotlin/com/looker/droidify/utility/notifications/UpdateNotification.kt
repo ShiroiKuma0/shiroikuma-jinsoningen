@@ -30,7 +30,8 @@ fun updatesAvailableNotification(
         ),
     )
     .setColor(
-        ContextThemeWrapper(context, R.style.Theme_Main_Light)
+        // shiroikuma fork: the house theme, not upstream's light one.
+        ContextThemeWrapper(context, R.style.Theme_Main_Jinsoningen)
             .getColorFromAttr(AndroidR.attr.colorPrimary).defaultColor,
     )
     .setContentIntent(

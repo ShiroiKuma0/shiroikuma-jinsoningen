@@ -1,11 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Base.MainTheme.Light" parent="Theme.Material3.DayNight.NoActionBar">
+    <!--
+      shiroikuma fork: the static seed of the house look.
+
+      An Android theme is resource-backed, so it cannot carry the runtime knob values — the live
+      colours reach the legacy View screens through JinsoningenViewTheme (a tinting
+      LayoutInflater.Factory2) and the patched Context.getColorFromAttr. This style is what those
+      two do NOT reach: the window in the instant before the first view is painted, and the
+      handful of views some adapters build in code without ever asking for a colour. Seeding it
+      black-yellow means those come out in the house look rather than Material's light default;
+      it is a floor, not the theme.
+
+      Parent switched to the Dark variant for the same reason: every Material default the seed
+      does not name (ripples, scrim, disabled states) then resolves light-on-dark.
+    -->
+    <style name="Base.MainTheme.Light" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorSurface">?android:attr/colorBackground</item>
         <item name="android:colorPrimaryDark">?android:attr/colorBackground</item>
-        <item name="android:colorBackground">@color/md_theme_l_background</item>
+        <item name="android:colorBackground">#FF000000</item>
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="android:textColorPrimary">#FFFFFF00</item>
+        <item name="android:textColorSecondary">#FFB3B300</item>
+        <item name="android:textColorTertiary">#FFB3B300</item>
+        <item name="colorPrimary">#FFFFFF00</item>
+        <item name="colorOnPrimary">#FF000000</item>
+        <item name="colorOnSurface">#FFFFFF00</item>
+        <item name="colorOnBackground">#FFFFFF00</item>
+        <item name="colorOnSurfaceVariant">#FFB3B300</item>
+        <item name="colorOutline">#FFFFFF00</item>
+        <item name="colorOutlineVariant">#FFFFFF00</item>
     </style>
     <style name="MainTheme" parent="Base.MainTheme.Light">
-        <item name="colorError">@color/md_theme_l_error</item>
+        <item name="colorError">#FFFF3B30</item>
     </style>
 </resources>
