@@ -36,7 +36,11 @@ object NetworkModule {
             .addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", "Droid-ify/${VERSION_NAME}-${BUILD_TYPE}")
+                        // shiroikuma fork: we identify as ourselves, not as Droid-ify.
+                        .header(
+                            "User-Agent",
+                            "shiroikuma-jinsoningen/${VERSION_NAME}-${BUILD_TYPE}",
+                        )
                         .build(),
                 )
             }

@@ -1,68 +1,80 @@
-> [!Warning]
-> **Free and Open-Source Android is under threat.**
->
-> Google will turn Android into a locked-down platform, restricting your essential freedom to install apps of your choice. Make your voice heard
->
-> [**Keep Android Open**](https://keepandroidopen.org/).
-
 <div align="center">
 
-<img width="" src="metadata/en-US/images/featureGraphic.png" alt="Droid-ify" align="center">
+<img src="app/src/main/ic_launcher-playstore.png" width="120" alt="白い熊 人造人間 icon" />
 
-**Clutterfree F-Droid client**
+# 白い熊 人造人間
 
-[![GitHub stars](https://img.shields.io/github/stars/Iamlooker/Droid-ify?color=%2359a14f&style=for-the-badge)](https://github.com/Iamlooker/Droid-ify/stargazers)
-[![GitHub downloads](https://img.shields.io/github/downloads/Iamlooker/Droid-ify/total.svg?color=%236f9645&style=for-the-badge)](https://github.com/Iamlooker/Droid-ify/releases/)
-[![GitHub](https://img.shields.io/github/v/release/Iamlooker/Droid-ify?display_name=tag&color=%23d97706&style=for-the-badge)](https://github.com/Iamlooker/Droid-ify/releases/latest)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.looker.droidify&label=IzzyOnDroid&style=for-the-badge)](https://apt.izzysoft.de/fdroid/index/apk/com.looker.droidify)
-[![F-Droid](https://img.shields.io/f-droid/v/com.looker.droidify?color=%23ea9010&style=for-the-badge)](https://f-droid.org/packages/com.looker.droidify)
+**A clutter-free F-Droid client, in the house black and yellow.**
 
-<img src="metadata/en-US/images/phoneScreenshots/1.png" width="15%" /><img src="metadata/en-US/images/phoneScreenshots/2.png" width="15%" /><img src="metadata/en-US/images/phoneScreenshots/3.png" width="15%" /><img src="metadata/en-US/images/phoneScreenshots/4.png" width="15%" />
+A fork of [Droid-ify](https://github.com/Droid-ify/client) — renamed, re-signed and re-badged so it
+installs **side-by-side** with upstream (app id `shiroikuma.jinsoningen`).
 
 </div>
 
-<div align="left">
+---
 
-* Browse and install apps from F-Droid repositories
-* Automatic app updates in the background
-* Multiple installation methods (Session, Root, Shizuku)
-* Add custom repositories with one tap
-* Browse offline after initial sync
+## What this fork is
 
-### Installation
+Upstream Droid-ify is a fast, Material-design F-Droid client: browse and install from F-Droid
+repositories, background auto-updates, Session / Root / Shizuku installers, one-tap custom
+repositories, fully offline after the first sync. All of that is unchanged here.
 
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" height="80" alt="Get it on IzzyOnDroid">](https://apt.izzysoft.de/packages/com.looker.droidify)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/com.looker.droidify/)
+What differs is identity and looks:
 
-[GitHub](https://github.com/Iamlooker/Droid-ify/releases/latest)
+| | |
+| --- | --- |
+| App id | `shiroikuma.jinsoningen` — installs alongside stock Droid-ify |
+| Label | 白い熊 人造人間 |
+| Icon | upstream's droid-head-and-download-arrow redrawn as stroke-only line-art, pure `#FFFF00` on black |
+| Signing | our own key, so our updates install over each other and never over upstream's |
+| Branding | our name and our source link everywhere the app names itself |
 
-**Signature:**
+The code namespace stays `com.looker.droidify` on purpose — only the installed application id
+differs. Renaming it would turn every upstream rebase into a mass conflict for no user-visible gain.
+
+## The icon
+
+Upstream's mark traced rather than replaced: the dome is a 242° sweep opening downward, the antennae
+sit at 45°, and the download arrow keeps its broad, squat head with its tip dropping just below the
+head. Stroke weights are taken from upstream's own vector — the dome at 29 % of its radius, the arrow
+at 0.76 of the dome — so the silhouette reads as the same app, in our colours. The source of truth is
+[`design/shiroikuma-jinsoningen-icon.svg`](design/shiroikuma-jinsoningen-icon.svg); every launcher
+resource is generated from it.
+
+## Versioning
+
+`versionName` is upstream's version plus our build counter — `0.7.4+001` — and `versionCode` is
+upstream's code times 10 000 plus that counter (`740 × 10000 + 1 = 7400001`). The counter bumps on
+every build and resets to `001` on every upstream sync, so `+N` always reads as "our Nth build on
+this upstream base".
+
+## Branches
+
+- **`custom`** — all our work; the default branch.
+- **`main`** — mirrors the upstream **release tag** we are based on (currently `v0.7.4`), never any
+  fork work.
+
+Upstream is tracked by release tag rather than by branch tip, so every base is a state upstream
+itself called finished.
+
+## Building
+
+```bash
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork
 ```
-ED:88:59:C5:5A:F3:11:16:26:58:B9:4A:F9:82:B9:F0:91:DC:D2:76:28:D4:DE:34:86:D1:21:7E:BF:3C:99:35
-```
 
-> [!Note]
-> Signature for versions from F-Droid might be different
+`buildFork` assembles the signed release, copies it to `~/tmp/` as
+`shiroikuma-jinsoningen_<version>.apk`, and bumps the build counter. Signing reads a gitignored
+`keystore.properties` at the repo root. Upstream's own [building guide](docs/building.md) still
+applies for everything else.
 
-#### Manual Building
+## Licence
 
-```sh
-git clone https://github.com/Droid-ify/client droidify
-cd droidify
-./gradlew assembleRelease
-```
-
-### Contribute
-
-Code contribution: [CONTRIBUTING.md](CONTRIBUTING.md)
-Translation: [Weblate](https://hosted.weblate.org/engage/droidify)
-
-### License
+GPL-3.0-or-later, as upstream — see [`LICENSE`](LICENSE).
 
 ```
-Droid-ify
+Copyright (C) 2025 LooKeR
 
-Copyright (C) 2026 LooKeR
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -75,4 +87,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ```
 
-</div>
+Credit for the original client goes to [Droid-ify](https://github.com/Droid-ify/client) and, before
+it, [Foxy Droid](https://github.com/kitsunyan/foxy-droid).

@@ -15,5 +15,5 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "Droid-ify"
+rootProject.name = "shiroikuma-jinsoningen"
 include(":app")
