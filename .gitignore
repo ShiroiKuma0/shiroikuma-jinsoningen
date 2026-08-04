@@ -20,3 +20,14 @@ local.properties
 /app/release/
 /app/alpha/
 /.kotlin/
+
+# --- shiroikuma-jinsoningen fork ---
+# Signing material never goes to git.
+keystore.properties
+*.jks
+*.keystore
+# Built APKs.
+*.apk
+# The agent guide and its skills ARE committed — only the machine-local settings are not.
+!.claude/
+.claude/settings.local.json

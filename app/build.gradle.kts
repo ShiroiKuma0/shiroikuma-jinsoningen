@@ -1,4 +1,7 @@
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import java.io.File
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,6 +12,26 @@ plugins {
     alias(libs.plugins.compose)
 }
 
+// --- shiroikuma-jinsoningen fork: versioning + signing ---------------------------------------
+// Upstream's own version literals (`latestVersionName` and `versionCode`, just below) stay
+// untouched, so an upstream rebase brings the new base in by itself. Our fork tail derives
+// from them:
+//     versionName = "<upstream name>+<NNN>"        e.g. 0.7.4+001
+//     versionCode = <upstream code> * 10000 + N    e.g. 740 * 10000 + 1 = 7400001
+// N = BUILD_NUMBER in gradle.properties: bumped after every successful build by `buildFork`,
+// reset to 1 on every upstream sync by the /upstream-new-version skill.
+val forkBuildNumber = (project.findProperty("BUILD_NUMBER") as String?)?.trim()?.toIntOrNull() ?: 1
+val forkPaddedBuildNumber = forkBuildNumber.toString().padStart(3, '0')
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) FileInputStream(keystorePropertiesFile).use { load(it) }
+}
+
+// Assigned inside defaultConfig below, consumed by `archivesName` / `buildFork` at the end.
+var forkVersionName = ""
+var forkVersionCode = 0
+
 android {
     val latestVersionName = "0.7.4"
     namespace = "com.looker.droidify"
@@ -17,12 +40,32 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.looker.droidify"
+        // shiroikuma fork: our own applicationId, so we install side-by-side with upstream.
+        // The `namespace` (com.looker.droidify) stays upstream's — renaming it would make every
+        // rebase a mass-conflict, and nothing user-visible depends on it.
+        applicationId = "shiroikuma.jinsoningen"
         minSdk = 23
         versionName = latestVersionName
         versionCode = 740
 
+        // shiroikuma fork tail — see the block above the `android { }` scope.
+        forkVersionCode = versionCode!! * 10000 + forkBuildNumber
+        forkVersionName = "$versionName+$forkPaddedBuildNumber"
+        versionCode = forkVersionCode
+        versionName = forkVersionName
+
         testInstrumentationRunner = "com.looker.droidify.TestRunner"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
     }
 
     androidResources.generateLocaleConfig = true
@@ -34,6 +77,10 @@ android {
 
     buildTypes {
         release {
+            // shiroikuma fork: sign from the gitignored keystore.properties.
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -60,7 +107,8 @@ android {
             buildConfigField(
                 type = "String",
                 name = "VERSION_NAME",
-                value = "\"v$latestVersionName\"",
+                // shiroikuma fork: report OUR version (e.g. 0.7.4+001), not upstream's "v0.7.4".
+                value = "\"$forkVersionName\"",
             )
         }
     }
@@ -210,3 +258,48 @@ task("detectAndroidLocals") {
     android.defaultConfig.buildConfigField("String[]", "DETECTED_LOCALES", langsListString)
 }
 tasks.preBuild.dependsOn("detectAndroidLocals")
+
+// --- shiroikuma-jinsoningen fork: APK name + the one build task we use ------------------------
+// Placed at the end of the script on purpose: forkVersionName / forkVersionCode are assigned
+// while the `android { defaultConfig { } }` block above is evaluated.
+base {
+    archivesName = "shiroikuma-jinsoningen_$forkVersionName"
+}
+
+tasks.register("buildFork") {
+    group = "build"
+    description = "Build the signed release APK, copy it to ~/tmp, and bump BUILD_NUMBER."
+    dependsOn("assembleRelease")
+
+    // Configuration-cache-safe: capture every project-derived value HERE (configuration time).
+    // The doLast lambda must not touch `layout` / `rootProject` / other project services.
+    val apkName = "shiroikuma-jinsoningen_$forkVersionName.apk"
+    val builtVersionCode = forkVersionCode
+    val releaseApkDir = layout.buildDirectory.dir("outputs/apk/release")
+    val userHome = providers.systemProperty("user.home")
+    val propsFile = rootProject.file("gradle.properties")
+    val currentBuildNumber = forkBuildNumber
+
+    doLast {
+        val outputDir = releaseApkDir.get().asFile
+        val targetDir = File(userHome.get(), "tmp")
+        targetDir.mkdirs()
+
+        val apk = outputDir.listFiles { _, name -> name.endsWith(".apk") }?.firstOrNull()
+            ?: throw GradleException("No APK found in $outputDir")
+        val targetFile = File(targetDir, apkName)
+        apk.copyTo(targetFile, overwrite = true)
+        println("[1;36m>>> ${targetFile.absolutePath}[0m")
+        println("[1;36m>>> versionCode $builtVersionCode[0m")
+
+        // Auto-increment BUILD_NUMBER for the next build.
+        val nextBuildNumber = currentBuildNumber + 1
+        propsFile.writeText(
+            propsFile.readText().replace(
+                "BUILD_NUMBER=$currentBuildNumber",
+                "BUILD_NUMBER=$nextBuildNumber",
+            ),
+        )
+        println("[1;36m>>> BUILD_NUMBER bumped to $nextBuildNumber[0m")
+    }
+}
