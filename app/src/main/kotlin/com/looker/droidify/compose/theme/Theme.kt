@@ -249,15 +249,16 @@ private val highContrastDarkColorScheme = darkColorScheme(
  * repaints the whole app underneath it. That is what "always everything with preview" means here:
  * the app is its own preview.
  *
- * [useHouseTheme] exists so a surface can still ask for stock Material (nothing does today).
- * Upstream's own light/dark/dynamic schemes are kept above, unused but un-diverged, so a rebase
- * that touches them stays a clean merge.
+ * [useHouseTheme] defaults to whatever `MainActivity` published when it applied the theme, so
+ * picking **Light** in Settings is a real escape hatch: these screens fall back to upstream's own
+ * light/dark/dynamic schemes, which are kept below un-diverged so a rebase stays a clean merge.
  */
 @Composable
 fun DroidifyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
-    useHouseTheme: Boolean = true,
+    useHouseTheme: Boolean = LocalContext.current.let { rememberJinsoningenUiState(it) }
+        .houseThemeActive,
     content:
     @Composable()
     () -> Unit,

@@ -67,6 +67,9 @@ object JinsoningenViewTheme {
      */
     fun attrColor(context: Context, attrRes: Int): Int? {
         val ui = JinsoningenUi.get(context)
+        // Light is a real escape hatch: answer nothing, so every lookup falls through to the
+        // stock theme and the app is genuinely upstream's light one.
+        if (!ui.houseThemeActive) return null
         return when (attrRes) {
             // colorPrimary / colorAccent / colorError are AppCompat's declarations; the rest are
             // Material 3's. Same merged resource ids either way — only the R class differs.
@@ -163,9 +166,10 @@ object JinsoningenViewTheme {
         )
     }
 
-    /** Window chrome — the ground everything else sits on. */
+    /** Window chrome — the ground everything else sits on. Skipped under the Light theme. */
     fun applyWindow(activity: Activity) {
         val ui = JinsoningenUi.get(activity)
+        if (!ui.houseThemeActive) return
         activity.window.decorView.setBackgroundColor(ui.background)
     }
 
@@ -187,6 +191,9 @@ object JinsoningenViewTheme {
     private fun paint(view: View) {
         val context = view.context ?: return
         val ui = JinsoningenUi.get(context)
+        // Under the Light theme the knobs stand down entirely — repainting stock Material light
+        // back to black is exactly what an escape hatch must not do.
+        if (!ui.houseThemeActive) return
 
         when (view) {
             is MaterialToolbar -> {

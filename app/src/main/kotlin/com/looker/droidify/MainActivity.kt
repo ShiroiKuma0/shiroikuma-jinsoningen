@@ -23,6 +23,7 @@ import com.looker.droidify.datastore.SettingsRepository
 import com.looker.droidify.datastore.extension.getThemeRes
 import com.looker.droidify.datastore.extension.isAmoledTheme
 import com.looker.droidify.datastore.extension.isDarkTheme
+import com.looker.droidify.datastore.extension.isLightTheme
 import com.looker.droidify.datastore.model.Theme
 import com.looker.droidify.datastore.get
 import com.looker.droidify.installer.InstallManager
@@ -32,6 +33,7 @@ import com.looker.droidify.ui.favourites.FavouritesFragment
 import com.looker.droidify.ui.repository.EditRepositoryFragment
 import com.looker.droidify.ui.repository.RepositoriesFragment
 import com.looker.droidify.ui.repository.RepositoryFragment
+import com.looker.droidify.jinsoningen.JinsoningenUi
 import com.looker.droidify.jinsoningen.JinsoningenViewTheme
 import com.looker.droidify.ui.jinsoningen.JinsoningenUiFragment
 import com.looker.droidify.ui.settings.SettingsFragment
@@ -114,10 +116,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * shiroikuma fork: applying the theme also publishes **which** look is in force, so the parts
+     * of the house styling that live outside the theme — the Compose theme, the View tinter and
+     * the patched attribute lookup — stand down when 白い熊 has picked Light. Without this the
+     * picker would set a light style and the tinter would immediately paint it black again.
+     *
+     * Upstream's Material You overlay (v0.7.8) is applied only on top of its own light style. Under
+     * the house theme it would lay the wallpaper's accent over the black-yellow knobs, so it is
+     * skipped there; the dark and AMOLED branches below are upstream's verbatim and only the light
+     * one is reachable.
+     */
     private fun applyTheme(theme: Theme, dynamicTheme: Boolean) {
         val configuration = resources.configuration
+        val houseTheme = !configuration.isLightTheme(theme)
+        JinsoningenUi.get(this).updateHouseThemeActive(houseTheme)
         setTheme(configuration.getThemeRes(theme, dynamicTheme))
-        if (!SdkCheck.isSnowCake || !dynamicTheme) return
+        if (houseTheme || !SdkCheck.isSnowCake || !dynamicTheme) return
         val overlay = if (configuration.isDarkTheme(theme)) {
             MaterialR.style.ThemeOverlay_Material3_DynamicColors_Dark
         } else {

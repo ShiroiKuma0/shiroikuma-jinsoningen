@@ -129,6 +129,23 @@ fun JinsoningenUiScreen(onBackClick: () -> Unit) {
 
             // ------------------------------------------------------------ colours
             SectionHeader(ui, "Colours")
+            // Under the Light theme the knobs are stored but nothing reads them, so say so rather
+            // than letting sliders appear to do nothing.
+            if (!ui.houseThemeActive) {
+                Text(
+                    text = "The Light theme is on, so these are stock Material colours and the " +
+                        "settings below are not in force. Pick Dark, Amoled or System in " +
+                        "Settings › Theme to bring them back — nothing here is lost meanwhile.",
+                    color = Color(ui.textDimColor),
+                    fontSize = ui.labelSize.sp,
+                    modifier = Modifier.padding(
+                        start = rowIndent(ui, false),
+                        end = 16.dp,
+                        top = ui.rowPadding.dp,
+                        bottom = ui.rowPadding.dp,
+                    ),
+                )
+            }
             SubHeader(ui, "Surfaces")
             ColorRow(ui, "Background", ColorSlot.BACKGROUND, level2 = true)
             ColorRow(ui, "Surface (cards, sheets, dialogs)", ColorSlot.SURFACE, level2 = true)
