@@ -14,7 +14,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -34,7 +33,6 @@ import com.looker.droidify.compose.settings.components.SelectionSettingItem
 import com.looker.droidify.compose.settings.components.SettingHeader
 import com.looker.droidify.compose.settings.components.SwitchSettingItem
 import com.looker.droidify.compose.settings.components.TextInputSettingItem
-import com.looker.droidify.compose.settings.components.WarningBanner
 import com.looker.droidify.datastore.model.AutoSync
 import com.looker.droidify.datastore.model.InstallerType
 import com.looker.droidify.datastore.model.LegacyInstallerComponent
@@ -42,8 +40,6 @@ import com.looker.droidify.datastore.model.ProxyType
 import com.looker.droidify.datastore.model.Theme
 import com.looker.droidify.utility.common.SdkCheck
 import com.looker.droidify.utility.common.extension.openLink
-import com.looker.droidify.utility.common.isIgnoreBatteryEnabled
-import com.looker.droidify.utility.common.requestBatteryFreedom
 import java.util.*
 import kotlin.time.Duration
 
@@ -61,15 +57,13 @@ private const val APP_URL = "https://github.com/ShiroiKuma0/shiroikuma-jinsoning
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBackClick: () -> Unit,
+    // shiroikuma fork: the entry to the 白い熊 人造人間 UI page. The main screen's cog reaches it
+    // with a long-press too, so it never costs a detour through here.
+    onJinsoningenUiClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val customButtons by viewModel.customButtons.collectAsStateWithLifecycle()
-    val isBackgroundAllowed by viewModel.isBackgroundAllowed.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.updateBackgroundAccessState(context.isIgnoreBatteryEnabled())
-    }
 
     val exportSettingsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
@@ -127,17 +121,23 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(contentPadding),
         ) {
-            if (!isBackgroundAllowed && settings.autoSync != AutoSync.NEVER) {
-                item {
-                    WarningBanner(
-                        title = stringResource(R.string.require_background_access),
-                        description = stringResource(R.string.require_background_access_DESC),
-                        onClick = {
-                            context.requestBatteryFreedom()
-                            viewModel.updateBackgroundAccessState(context.isIgnoreBatteryEnabled())
-                        },
-                    )
-                }
+            // shiroikuma fork: upstream opened this page with a red WarningBanner whenever
+            // battery optimisation was still on and auto-sync was not NEVER. It was alarmist for
+            // what is a preference, so it is gone (白い熊, 2026-08-04). The machinery behind it is
+            // untouched — SettingsViewModel.isBackgroundAllowed, and requestBatteryFreedom() /
+            // isIgnoreBatteryEnabled() in utility/common/Permissions.kt — so the prompt can be
+            // reinstated, or put somewhere calmer, without unpicking anything.
+
+            // The house UI page comes first — it is the one that reshapes
+            // everything below it.
+            item { SettingHeader(title = stringResource(R.string.jinsoningen_ui)) }
+
+            item {
+                ActionSettingItem(
+                    title = stringResource(R.string.jinsoningen_ui),
+                    description = stringResource(R.string.jinsoningen_ui_DESC),
+                    onClick = onJinsoningenUiClick,
+                )
             }
 
             item { SettingHeader(title = stringResource(R.string.prefs_personalization)) }
