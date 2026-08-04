@@ -3,6 +3,26 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.4+009 — 2026-08-04
+
+### The Light theme is a real escape hatch
+
+- **Light means upstream's light, dark means the house black-yellow.** Picking Light in
+  Settings › Theme now hands back Droid-ify's own light style untouched. `SYSTEM` and
+  `SYSTEM_BLACK` follow the system honestly — light in day mode, the house theme in night mode —
+  and `DARK` / `AMOLED` are always the house theme.
+- Diverting the theme resolution alone would not have worked: the house look lives in four places,
+  and the View tinter would have repainted a light theme black a moment after the picker set it.
+  All four now read one live flag, published by `MainActivity` from the same settings flow that
+  calls `setTheme`:
+  - `getThemeRes` returns upstream's `Theme_Main_{Light,DynamicLight}`;
+  - `Context.getColorFromAttr` answers nothing, so every lookup falls through to the stock theme;
+  - the tinting inflater, the per-fragment paint and the window background all no-op;
+  - `DroidifyTheme` defaults `useHouseTheme` off, so the Compose screens use upstream's schemes.
+- Under Light the UI page's knobs are still stored but nothing reads them, so the **Colours**
+  section says so plainly instead of leaving the sliders looking dead — dim text, not a warning
+  colour. Switching back to Dark or Amoled restores every setting exactly as it was.
+
 ## 0.7.4+008 — 2026-08-04
 
 The first published build. Base: upstream release tag `v0.7.4` (`versionCode` 740).
