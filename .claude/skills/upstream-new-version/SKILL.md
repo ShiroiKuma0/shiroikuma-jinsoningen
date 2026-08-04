@@ -62,11 +62,22 @@ the plain `+NNN` versionName.
    - **Every** notable upstream change gets a row — do not summarise into "various fixes". Group only
      genuinely trivial churn (translation drops, dependency bumps, typo fixes) into a single final
      row, and say how many were folded in.
-   - The **last column is the point**: flag every change landing in a file we patch — the launcher
-     icon resources, `values/strings.xml` (`application_name`), `app/build.gradle.kts`,
-     `gradle.properties`, `.gitignore`, `di/NetworkModule.kt` (the User-Agent),
-     `compose/settings/SettingsScreen.kt` (the source-code link + version row), and any other
-     de-branded screen. Those are the rebase conflicts, predicted in advance.
+   - The **last column is the point**: flag every change landing in a file we patch. The list, so a
+     hit is recognised rather than rediscovered:
+     `app/build.gradle.kts`, `gradle.properties`, `settings.gradle.kts`, `.gitignore`,
+     `AndroidManifest.xml` (our receiver/service/permissions), the launcher icon resources,
+     `values/strings.xml` · `styles.xml` · `base_theme.xml` · `ids.xml`,
+     `MainActivity.kt` (theme application, the inflater install, the fragment paint, the change
+     listener, `navigateJinsoningenUi`), `datastore/extension/Preferences.kt` (`getThemeRes`),
+     `compose/theme/Theme.kt`, `utility/common/extension/Context.kt` (`getColorFromAttr`),
+     `ui/tabsFragment/TabsFragment.kt` (the cog), `ui/settings/SettingsFragment.kt`,
+     `compose/settings/SettingsScreen.kt` (the UI-page entry, the credits row, the removed banner),
+     the five Compose files importing our `AlertDialog`,
+     `installer/installers/InstallerPermission.kt`, `ui/repository/RepositoriesAdapter.kt`,
+     `di/NetworkModule.kt`, and `utility/notifications/UpdateNotification.kt`.
+     Those are the rebase conflicts, predicted in advance. Our own `jinsoningen/` trees are
+     fork-only and will not conflict — but they can be *broken* by upstream refactors, which is
+     what step 6 checks.
    - Below the table, add the base line: old tag → new tag, old `versionCode`/`versionName` → new, and
      the resulting fork version (`<newVersionName>+001`, code `<newVersionCode>*10000+1`).
 
@@ -117,15 +128,36 @@ the plain `+NNN` versionName.
    | Signing config | `keystore.properties` block + `signingConfig` on `release` | `app/build.gradle.kts` |
    | `buildFork` task + `archivesName` | present at the end of the script | `app/build.gradle.kts` |
    | Build tail | `BUILD_NUMBER=1` | `gradle.properties` |
-   | Black-yellow icon | yellow `#FFFF00` traced line-art, black `ic_launcher_background` | `drawable/ic_launcher_foreground.xml`, `drawable/ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/` |
-   | De-branding | no "Droid-ify" in user-visible text, our GitHub link in Settings, our User-Agent | `values/strings.xml`, `compose/settings/SettingsScreen.kt`, `di/NetworkModule.kt` |
-   | Kept as functional | `droidify.app` deep-link host + share links, bundled repo addresses, IzzyOnDroid endpoints | `utility/common/Deeplinks.kt`, `AndroidManifest.xml`, repo defaults |
+   | Black-yellow icon | traced line-art; adaptive foreground **fills** the 72×72 safe zone | `design/…icon.svg`, `drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/` |
+   | Our source tree | present and compiling | `jinsoningen/`, `compose/jinsoningen/`, `ui/jinsoningen/` |
+   | House theme | `Theme.Main.Jinsoningen` + `getThemeRes` returning it for every non-Light choice | `values/jinsoningen_theme.xml`, `datastore/extension/Preferences.kt` |
+   | Legacy-View theming | `install()` called **before** `super.onCreate`; fragment paint + change listener registered, listener removed in `onDestroy` | `MainActivity.kt` |
+   | Attr redirect | `JinsoningenViewTheme.attrColorStateList` consulted first | `utility/common/extension/Context.kt`, `ui/repository/RepositoriesAdapter.kt` |
+   | Toolbar cog | `R.id.toolbar_settings` item + its long-press handler | `ui/tabsFragment/TabsFragment.kt`, `values/ids.xml` |
+   | UI page entry | `onJinsoningenUiClick` wired through to `navigateJinsoningenUi()` | `compose/settings/SettingsScreen.kt`, `ui/settings/SettingsFragment.kt`, `MainActivity.kt` |
+   | Dialog borders | every Compose dialog imports our `AlertDialog`, not Material's | `compose/**` — `grep -rn "^import androidx.compose.material3.AlertDialog$"` must return nothing |
+   | Legacy dialog style | yellow-edged background | `values/styles.xml` → `Theme.Alert`, `drawable/jinsoningen_dialog_background.xml` |
+   | Automation contract | receiver (3 actions, exported) + `dataSync` service + `MANAGE_EXTERNAL_STORAGE` | `AndroidManifest.xml`, `jinsoningen/automation/` |
+   | Shizuku permissions | APK carries **both** `af.shizuku.plus…` (ours, in the manifest) and `moe.shizuku.manager…` (merged by the API library) — check the APK, not the manifest: `aapt2 dump permissions <apk> \| grep shizuku` | `AndroidManifest.xml` |
+   | Shizuku preference | `shiroikuma.shizuku` resolved **before** the stock permission/package | `installer/installers/InstallerPermission.kt` |
+   | No alarmist banner | no `WarningBanner` at the top of Settings; Background access row present in the UI page | `compose/settings/SettingsScreen.kt`, `compose/jinsoningen/JinsoningenUiScreen.kt` |
+   | De-branding | no "Droid-ify" in user-visible text, our GitHub link in Settings, our User-Agent | `values/strings.xml`, `compose/settings/SettingsScreen.kt`, `di/NetworkModule.kt`, `settings.gradle.kts` |
+   | Kept as functional | `droidify.app` deep-link host + share links, bundled repo addresses, IzzyOnDroid endpoints, the FoxyDroid credit | `utility/common/Deeplinks.kt`, `AndroidManifest.xml`, repo defaults |
    | Committed agent files | `CLAUDE.md`, `.claude/` un-ignored; signing material ignored | `.gitignore` |
 
-   Sanity check that the build script still evaluates:
+   Sanity check that the build script still evaluates, then that it compiles and the tests pass:
    ```bash
    JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/android-sdk ./gradlew :app:tasks --console=plain | head
+   JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/android-sdk ./gradlew :app:testDebugUnitTest --console=plain
    ```
+   (`testReleaseUnitTest` does not exist — the unit-test task is the debug one.)
+
+   **Upstream is mid-migration from Fragments to Compose**, so a screen we patched under `ui/` may
+   have been rewritten under `compose/` — look for the replacement before concluding our change was
+   dropped, and vice versa. In particular: if upstream wires `MainComposeActivity` into the manifest
+   and retires `MainActivity`, the whole `JinsoningenViewTheme` layer becomes dead weight and the
+   Compose path is the only one left — that is a re-plan, not a conflict resolution. Stop and tell
+   白い熊.
 
 7. **Build the new `+001`** via the **build-apk** skill
    (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/android-sdk ./gradlew buildFork < /dev/null`),
