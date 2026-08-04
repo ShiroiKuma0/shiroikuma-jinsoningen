@@ -163,6 +163,16 @@ On a knob change the UI state fires its listener, and `MainActivity` calls
   `compose/jinsoningen/` — a screen adopts it by changing one import — and `@style/Theme.Alert` for
   the legacy `MaterialAlertDialog`s.
 - **`testReleaseUnitTest` does not exist**; the unit-test task is `:app:testDebugUnitTest`.
+- **The fork runs no CI, and that takes two layers** (白い熊, 2026-08-04). Upstream's five workflows
+  are deleted from `custom`, *and* all five are `disabled_manually` on GitHub. Neither layer alone
+  is enough: `main` still mirrors the upstream tag with its workflows intact and is pushed on every
+  sync, so only the server-side disable keeps `Unit tests` quiet there. They were removed because
+  the release build and both release notifiers fired on every tag we push and failed instantly —
+  the fork holds none of upstream's secrets (`KEY_BASE64`, `MASTODON_TOKEN`, `TELEGRAM_BOT_TOKEN`),
+  so each release sent three failure mails. We build and sign locally with `buildFork`.
+  **A rebase will conflict here**: when upstream edits one of those files `/upstream-new-version`
+  reports `deleted by us / modified by them` — resolve with `git rm <file>`, never by restoring it.
+  Re-enabling one takes both the `.yml` back and `gh workflow enable "<name>"`.
 
 ## Export / Import and the 保存復元 contract
 
