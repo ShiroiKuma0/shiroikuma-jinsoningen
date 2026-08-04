@@ -105,6 +105,23 @@ class JinsoningenUiState(context: Context) {
     var fontRevision by mutableIntStateOf(0)
         private set
 
+    /**
+     * Whether the house black-yellow look is the one in force.
+     *
+     * `false` when 白い熊 has picked the Light theme — a real escape hatch, so the knobs stand
+     * down entirely rather than repainting stock Material light back to black. Everything that
+     * applies the house look reads this: the Compose theme, the View tinter and the patched
+     * attribute lookup. `MainActivity` sets it from the same settings flow that calls `setTheme`,
+     * and changing the theme recreates the Activity, so a plain state read is enough.
+     */
+    var houseThemeActive by mutableStateOf(true)
+        private set
+
+    // Named updateX, not setX: the property's own generated setter already owns that JVM signature.
+    fun updateHouseThemeActive(active: Boolean) {
+        houseThemeActive = active
+    }
+
     // ------------------------------------------------------------------ writes
 
     fun updateColor(slot: ColorSlot, value: Int) {
