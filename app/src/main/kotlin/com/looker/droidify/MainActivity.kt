@@ -20,6 +20,8 @@ import com.looker.droidify.data.model.toPackageName
 import com.looker.droidify.database.CursorOwner
 import com.looker.droidify.datastore.SettingsRepository
 import com.looker.droidify.datastore.extension.getThemeRes
+import com.looker.droidify.datastore.extension.isLightTheme
+import com.looker.droidify.datastore.model.Theme
 import com.looker.droidify.datastore.get
 import com.looker.droidify.installer.InstallManager
 import com.looker.droidify.installer.model.InstallItem
@@ -28,6 +30,7 @@ import com.looker.droidify.ui.favourites.FavouritesFragment
 import com.looker.droidify.ui.repository.EditRepositoryFragment
 import com.looker.droidify.ui.repository.RepositoriesFragment
 import com.looker.droidify.ui.repository.RepositoryFragment
+import com.looker.droidify.jinsoningen.JinsoningenUi
 import com.looker.droidify.jinsoningen.JinsoningenViewTheme
 import com.looker.droidify.ui.jinsoningen.JinsoningenUiFragment
 import com.looker.droidify.ui.settings.SettingsFragment
@@ -99,24 +102,26 @@ class MainActivity : AppCompatActivity() {
         val newSettings = hiltEntryPoint.settingsRepository().get { theme to dynamicTheme }
         runBlocking {
             val theme = newSettings.first()
-            setTheme(
-                resources.configuration.getThemeRes(
-                    theme = theme.first,
-                    dynamicTheme = theme.second,
-                ),
-            )
+            applyTheme(theme.first, theme.second)
         }
         lifecycleScope.launch {
             newSettings.drop(1).collect { themeAndDynamic ->
-                setTheme(
-                    resources.configuration.getThemeRes(
-                        theme = themeAndDynamic.first,
-                        dynamicTheme = themeAndDynamic.second,
-                    ),
-                )
+                applyTheme(themeAndDynamic.first, themeAndDynamic.second)
                 recreate()
             }
         }
+    }
+
+    /**
+     * shiroikuma fork: applying the theme also publishes **which** look is in force, so the parts
+     * of the house styling that live outside the theme — the Compose theme, the View tinter and
+     * the patched attribute lookup — stand down when 白い熊 has picked Light. Without this the
+     * picker would set a light style and the tinter would immediately paint it black again.
+     */
+    private fun applyTheme(theme: Theme, dynamicTheme: Boolean) {
+        val configuration = resources.configuration
+        JinsoningenUi.get(this).updateHouseThemeActive(!configuration.isLightTheme(theme))
+        setTheme(configuration.getThemeRes(theme = theme, dynamicTheme = dynamicTheme))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

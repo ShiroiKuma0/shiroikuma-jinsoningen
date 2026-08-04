@@ -9,22 +9,39 @@ import com.looker.droidify.R.string as stringRes
 import com.looker.droidify.R.style as styleRes
 
 /**
- * shiroikuma fork: every theme choice resolves to the one house style.
+ * shiroikuma fork: **light means upstream's light, dark means the house black-yellow.**
  *
  * This is the call that decides what `MainActivity.setTheme` applies, and it runs *after* the
- * manifest theme — so leaving it alone meant the whole legacy View shell kept Droid-ify's green
- * palette no matter what the launcher theme said. `Theme.Main.Jinsoningen` inherits
- * `Theme.Main.Amoled`, so upstream's widget styles and text appearances still come through; only
- * the colours are ours.
+ * manifest theme — so the fork has to divert it, or the View shell keeps Droid-ify's green palette
+ * whatever the launcher theme says. `Theme.Main.Jinsoningen` inherits `Theme.Main.Amoled`, so
+ * upstream's widget styles and text appearances still come through; only the colours are ours.
  *
- * Upstream's light/dark/amoled/dynamic resolution is preserved verbatim in [stockThemeRes] below
- * rather than deleted, so a rebase that touches it stays a clean merge and the fork's divergence
- * is one `return`.
+ * Picking **Light** is a real escape hatch (白い熊, 2026-08-04): it hands back upstream's own light
+ * style untouched. It has to be honoured beyond this function too — see
+ * [com.looker.droidify.jinsoningen.JinsoningenUiState.houseThemeActive], which the Compose theme,
+ * the View tinter and the patched attribute lookup all read, so nothing repaints stock light back
+ * to black behind the picker's back.
+ *
+ * Upstream's own resolution is preserved verbatim in [stockThemeRes] and still used for the light
+ * outcomes, so a rebase that touches it stays a clean merge.
  */
 fun Configuration.getThemeRes(theme: Theme, dynamicTheme: Boolean): Int =
-    styleRes.Theme_Main_Jinsoningen
+    if (isLightTheme(theme)) {
+        stockThemeRes(theme, dynamicTheme)
+    } else {
+        styleRes.Theme_Main_Jinsoningen
+    }
 
-@Suppress("unused")
+/**
+ * True when the choice means "light": LIGHT always, and the two SYSTEM options when the system is
+ * not in night mode — which is what following the system is supposed to mean.
+ */
+fun Configuration.isLightTheme(theme: Theme): Boolean = when (theme) {
+    Theme.LIGHT -> true
+    Theme.DARK, Theme.AMOLED -> false
+    Theme.SYSTEM, Theme.SYSTEM_BLACK -> (uiMode and Configuration.UI_MODE_NIGHT_YES) == 0
+}
+
 fun Configuration.stockThemeRes(theme: Theme, dynamicTheme: Boolean) = when (theme) {
     Theme.SYSTEM -> {
         if ((uiMode and Configuration.UI_MODE_NIGHT_YES) != 0) {
