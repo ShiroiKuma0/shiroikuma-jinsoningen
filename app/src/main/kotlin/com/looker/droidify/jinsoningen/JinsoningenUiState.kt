@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * Observable mirror of [JinsoningenUiConfig]. Every setter writes through to SharedPreferences
@@ -120,6 +121,31 @@ class JinsoningenUiState(context: Context) {
     // Named updateX, not setX: the property's own generated setter already owns that JVM signature.
     fun updateHouseThemeActive(active: Boolean) {
         houseThemeActive = active
+        notifyChanged()
+    }
+
+    // ----------------------------------------------------------------- listeners
+
+    /**
+     * Fired after any knob write.
+     *
+     * The Compose screens need nothing of the sort — they read the state directly and recompose.
+     * This is for the **legacy View screens**, which cannot observe Compose state: `MainActivity`
+     * registers one listener and refreshes the visible hierarchy from it. Copy-on-write because a
+     * listener may unregister itself while the set is being walked.
+     */
+    private val changeListeners = CopyOnWriteArraySet<() -> Unit>()
+
+    fun addChangeListener(listener: () -> Unit) {
+        changeListeners += listener
+    }
+
+    fun removeChangeListener(listener: () -> Unit) {
+        changeListeners -= listener
+    }
+
+    private fun notifyChanged() {
+        changeListeners.forEach { it() }
     }
 
     // ------------------------------------------------------------------ writes
@@ -138,6 +164,7 @@ class JinsoningenUiState(context: Context) {
         }
         config.rememberColor(value)
         recentColors = config.recentColors()
+        notifyChanged()
     }
 
     fun colorOf(slot: ColorSlot): Int = when (slot) {
@@ -152,30 +179,30 @@ class JinsoningenUiState(context: Context) {
         ColorSlot.WARN -> warnColor
     }
 
-    fun updateFontFamily(id: String) { config.fontFamily = id; fontFamilyId = id }
-    fun updateFontWeight(v: Int) { config.fontWeight = v; fontWeight = v }
-    fun updateFontItalic(v: Boolean) { config.fontItalic = v; fontItalic = v }
-    fun updateFontSize(v: Int) { config.fontSize = v; fontSize = v }
-    fun updateHeadingSize(v: Int) { config.headingSize = v; headingSize = v }
-    fun updateHeadingWeight(v: Int) { config.headingWeight = v; headingWeight = v }
-    fun updateLabelSize(v: Int) { config.labelSize = v; labelSize = v }
-    fun updateLetterSpacing(v: Int) { config.letterSpacing = v; letterSpacing = v }
-    fun updateLineHeightPct(v: Int) { config.lineHeightPct = v; lineHeightPct = v }
+    fun updateFontFamily(id: String) { config.fontFamily = id; fontFamilyId = id; notifyChanged() }
+    fun updateFontWeight(v: Int) { config.fontWeight = v; fontWeight = v; notifyChanged() }
+    fun updateFontItalic(v: Boolean) { config.fontItalic = v; fontItalic = v; notifyChanged() }
+    fun updateFontSize(v: Int) { config.fontSize = v; fontSize = v; notifyChanged() }
+    fun updateHeadingSize(v: Int) { config.headingSize = v; headingSize = v; notifyChanged() }
+    fun updateHeadingWeight(v: Int) { config.headingWeight = v; headingWeight = v; notifyChanged() }
+    fun updateLabelSize(v: Int) { config.labelSize = v; labelSize = v; notifyChanged() }
+    fun updateLetterSpacing(v: Int) { config.letterSpacing = v; letterSpacing = v; notifyChanged() }
+    fun updateLineHeightPct(v: Int) { config.lineHeightPct = v; lineHeightPct = v; notifyChanged() }
 
-    fun updateCornerRadius(v: Int) { config.cornerRadius = v; cornerRadius = v }
-    fun updateBorderWidth(v: Int) { config.borderWidth = v; borderWidth = v }
-    fun updateDividerWidth(v: Int) { config.dividerWidth = v; dividerWidth = v }
+    fun updateCornerRadius(v: Int) { config.cornerRadius = v; cornerRadius = v; notifyChanged() }
+    fun updateBorderWidth(v: Int) { config.borderWidth = v; borderWidth = v; notifyChanged() }
+    fun updateDividerWidth(v: Int) { config.dividerWidth = v; dividerWidth = v; notifyChanged() }
 
-    fun updateIconSize(v: Int) { config.iconSize = v; iconSize = v }
-    fun updateIconRoundness(v: Int) { config.iconRoundness = v; iconRoundness = v }
+    fun updateIconSize(v: Int) { config.iconSize = v; iconSize = v; notifyChanged() }
+    fun updateIconRoundness(v: Int) { config.iconRoundness = v; iconRoundness = v; notifyChanged() }
 
-    fun updateRowPadding(v: Int) { config.rowPadding = v; rowPadding = v }
-    fun updateGroupSpacing(v: Int) { config.groupSpacing = v; groupSpacing = v }
-    fun updateIndentStep(v: Int) { config.indentStep = v; indentStep = v }
+    fun updateRowPadding(v: Int) { config.rowPadding = v; rowPadding = v; notifyChanged() }
+    fun updateGroupSpacing(v: Int) { config.groupSpacing = v; groupSpacing = v; notifyChanged() }
+    fun updateIndentStep(v: Int) { config.indentStep = v; indentStep = v; notifyChanged() }
 
-    fun updateExportDir(uri: String) { config.exportDir = uri; exportDir = uri }
+    fun updateExportDir(uri: String) { config.exportDir = uri; exportDir = uri; notifyChanged() }
 
-    fun onFontsChanged() { fontRevision++ }
+    fun onFontsChanged() { fontRevision++; notifyChanged() }
 
     fun resetToDefaults() {
         config.resetToDefaults()
@@ -215,6 +242,7 @@ class JinsoningenUiState(context: Context) {
         // Imported fonts may have been replaced on disk under a memoised family.
         JinsoningenFonts.invalidate()
         fontRevision++
+        notifyChanged()
     }
 
     // ------------------------------------------------------------- derivations
