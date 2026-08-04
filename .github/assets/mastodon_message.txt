@@ -1,3 +1,0 @@
-Droid-ify ${VERSION_NAME} :psyduck:
-
-${CHANGELOG}

@@ -1,3 +1,0 @@
-<b>Droid-ify <u>${VERSION_NAME}</u></b>
-
-<i>${CHANGELOG}</i>
