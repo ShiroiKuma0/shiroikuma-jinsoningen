@@ -17,6 +17,19 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- shiroikuma fork: the 保存復元 contract lets 白い熊 自由作業盤 pass an absolute `path` to
+         export into, which needs All-Files-Access. Declaring it is not holding it, so the export
+         tests Environment.isExternalStorageManager() first and answers ERROR:no-storage-access
+         rather than failing halfway. The Export/Import panel's own SAF folder needs none of this. -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <!-- shiroikuma fork: 白い熊 雫 (shiroikuma.shizuku) grants its clients
+         af.shizuku.plus.permission.API_V23 rather than the stock
+         moe.shizuku.manager.permission.API_V23, which it cannot define while installed beside
+         stock Shizuku. The Shizuku API library merges the stock one in for us; this is the other
+         half, so our own Shizuku can grant us too. -->
+    <uses-permission android:name="af.shizuku.plus.permission.API_V23" />
 
     <uses-feature
         android:name="android.software.leanback"
@@ -167,6 +180,26 @@
 
         <service
             android:name=".service.DownloadService"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- shiroikuma fork: the 保存復元 automation contract. The receiver does no work — it
+             checks the switch and the token, answers LIST_CATEGORIES inline and hands
+             EXPORT_STATE to the foreground service, because a manifest receiver that overruns
+             the broadcast window gets the app ANR'd and killed mid-write. No android:permission:
+             the caller cannot hold one, so the token is the gate. -->
+        <receiver
+            android:name=".jinsoningen.automation.StateExportReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="shiroikuma.jinsoningen.action.EXPORT_STATE" />
+                <action android:name="shiroikuma.jinsoningen.action.LIST_CATEGORIES" />
+                <action android:name="shiroikuma.jinsoningen.action.CANCEL_EXPORT" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".jinsoningen.automation.StateExportService"
+            android:exported="false"
             android:foregroundServiceType="dataSync" />
 
         <receiver

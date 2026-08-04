@@ -1,0 +1,12 @@
+<!-- shiroikuma fork: the toolbar settings cog. Tap opens Settings, long-press jumps straight to
+     the 白い熊 人造人間 UI page. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="?attr/colorControlNormal">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M405,880L393,776Q375,769 359.5,760Q344,751 329,740L232,781L157,651L241,588Q239,578 239.5,569Q240,560 240,550Q240,540 239.5,530.5Q239,521 241,511L157,449L232,319L329,360Q344,349 359.5,340Q375,331 393,324L405,220L555,220L567,324Q585,331 600.5,340Q616,349 631,360L728,319L803,449L719,511Q721,521 721,530.5Q721,540 721,550Q721,560 720.5,569.5Q720,579 718,589L802,651L727,781L631,740Q616,751 600,760Q584,769 567,776L555,880L405,880ZM481,620Q539,620 580,579Q621,538 621,480Q621,422 580,381Q539,340 481,340Q422,340 381.5,381Q341,422 341,480Q341,538 381.5,579Q422,620 481,620Z" />
+</vector>

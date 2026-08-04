@@ -244,7 +244,12 @@ class TabsFragment : ScreenFragment() {
                     true
                 }
 
-            add(1, 0, 0, stringRes.settings)
+            // shiroikuma fork: Settings is a real toolbar cog rather than an overflow entry, so
+            // it can carry a long-press. Tap = Settings; long-press = straight to the
+            // 白い熊 人造人間 UI page (wired below, once the toolbar has inflated its views).
+            add(1, R.id.toolbar_settings, 0, stringRes.settings)
+                .setIcon(toolbar.context.getMutatedIcon(R.drawable.ic_settings))
+                .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS)
                 .setOnMenuItemClickListener {
                     view.post { mainActivity.navigatePreferences() }
                     true
@@ -263,6 +268,12 @@ class TabsFragment : ScreenFragment() {
                     viewModel.resetPrivacyFetchTimestamps()
                     syncConnection.binder?.sync(SyncService.SyncRequest.FORCE)
                 }
+                true
+            }
+            // shiroikuma fork: long-pressing the cog skips Settings and opens the
+            // 白い熊 人造人間 UI page directly.
+            toolbar.findViewById<View>(R.id.toolbar_settings)?.setOnLongClickListener {
+                view.post { mainActivity.navigateJinsoningenUi() }
                 true
             }
         }
