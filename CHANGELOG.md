@@ -3,6 +3,27 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.4+010 — 2026-08-04
+
+### Imported fonts reach the last screens that were missing them
+
+- Several adapters build their views **in code** rather than inflating them —
+  `AppDetailAdapter`, `CustomButtonsAdapter`, the app-list header, the screenshot strip, the section
+  title — so they never pass the tinting inflater. Their *colours* were always right (they resolve
+  them in the view-holder constructor through the patched `getColorFromAttr`); their **typeface was
+  not**, so an imported font skipped them entirely, on every path.
+- `applyTypography()` sets typeface, slant and letter spacing and **never colour**. That constraint
+  is what makes it safe to run over adapter-built rows at any moment: it cannot undo a distinction
+  an adapter drew, which is why a blanket repaint was the wrong tool. It is hooked to each
+  RecyclerView's child-attach, so rows take the font as they scroll into view.
+- **Knob changes now reach live legacy screens.** The UI state fires a plain change listener — the
+  legacy Views cannot observe Compose state — and `MainActivity` repaints the visible hierarchy and
+  rebuilds its RecyclerViews from it, carrying scroll position across. Detaching and re-attaching
+  the adapter is what forces `onCreateViewHolder` to run again; `notifyDataSetChanged()` alone
+  re-binds the holders it already has. The refresh is posted, so dragging a slider coalesces onto
+  the next frame instead of rebuilding a list per pixel, and it is unregistered in `onDestroy`
+  because the UI state is a process-wide singleton.
+
 ## 0.7.4+009 — 2026-08-04
 
 ### The Light theme is a real escape hatch
