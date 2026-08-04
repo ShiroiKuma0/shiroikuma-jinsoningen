@@ -48,14 +48,13 @@ import java.util.*
 import kotlin.time.Duration
 
 private const val BACKUP_MIME_TYPE = "application/json"
-private const val SETTINGS_BACKUP_NAME = "droidify_settings"
-private const val REPO_BACKUP_NAME = "droidify_repos"
+private const val SETTINGS_BACKUP_NAME = "shiroikuma-jinsoningen_settings"
+private const val REPO_BACKUP_NAME = "shiroikuma-jinsoningen_repos"
 private const val CUSTOM_BUTTONS_BACKUP_NAME = "custom_buttons"
 
 private const val FOXY_DROID_TITLE = "FoxyDroid"
 private const val FOXY_DROID_URL = "https://github.com/kitsunyan/foxy-droid"
-private const val DROID_IFY_TITLE = "Droid-ify"
-private const val DROID_IFY_URL = "https://github.com/Droid-ify/client"
+private const val APP_URL = "https://github.com/ShiroiKuma0/shiroikuma-jinsoningen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -383,9 +382,9 @@ fun SettingsScreen(
 
             item {
                 ActionSettingItem(
-                    title = DROID_IFY_TITLE,
+                    title = stringResource(R.string.application_name),
                     description = BuildConfig.VERSION_NAME,
-                    onClick = { context.openLink(DROID_IFY_URL) },
+                    onClick = { context.openLink(APP_URL) },
                 )
             }
         }

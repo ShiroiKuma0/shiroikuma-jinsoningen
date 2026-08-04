@@ -33,7 +33,7 @@ object NetworkModule {
         val engine = OkHttp.create { proxy = proxyPreference.toProxy() }
         return HttpClient(engine) {
             install(UserAgent) {
-                agent = "Droid-ify/${VERSION_NAME}-${BUILD_TYPE}"
+                agent = "shiroikuma-jinsoningen/${VERSION_NAME}-${BUILD_TYPE}"
             }
             install(HttpTimeout) {
                 connectTimeoutMillis = 30_000L
