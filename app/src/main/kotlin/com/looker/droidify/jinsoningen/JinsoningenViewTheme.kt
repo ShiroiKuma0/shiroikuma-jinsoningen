@@ -35,6 +35,7 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputLayout
 import androidx.appcompat.R as AppCompatR
+import com.looker.droidify.R
 import com.google.android.material.R as MaterialR
 
 /**
@@ -182,6 +183,61 @@ object JinsoningenViewTheme {
         if (view is ViewGroup) view.children.forEach { paintTree(it) }
     }
 
+    /**
+     * Re-applies the whole look to a live screen after a knob changed.
+     *
+     * Repainting is not enough on its own. Several adapters build their views in **code** —
+     * `AppDetailAdapter`, `CustomButtonsAdapter`, the app-list header, the screenshot strip, the
+     * section title — and colour them in the view-holder constructor via `getColorFromAttr`. That
+     * makes them correct when built and stale afterwards, and a blanket repaint would be worse
+     * than the staleness: it would flatten the deliberate distinctions those adapters draw (an
+     * "installed" chip against a plain row, say) into one flat text colour.
+     *
+     * So each RecyclerView is rebuilt instead — the constructors run again and resolve the knob
+     * colours themselves, keeping their own semantics. Scroll position is carried across.
+     */
+    fun refreshTree(root: View) {
+        paintTree(root)
+        forEachRecyclerView(root) { recycler ->
+            val adapter = recycler.adapter ?: return@forEachRecyclerView
+            val scroll = recycler.layoutManager?.onSaveInstanceState()
+            recycler.recycledViewPool.clear()
+            // Detaching and re-attaching the adapter is what guarantees onCreateViewHolder runs
+            // again; notifyDataSetChanged alone happily re-binds the holders it already has.
+            recycler.adapter = null
+            recycler.adapter = adapter
+            scroll?.let { recycler.layoutManager?.onRestoreInstanceState(it) }
+        }
+        applyTypography(root)
+    }
+
+    /**
+     * Typeface, slant and letter spacing only — **never colour**.
+     *
+     * Safe to run over adapter-built rows at any moment, because it cannot undo a colour an
+     * adapter chose. It is what gives code-built `TextView`s the imported font, which they would
+     * otherwise never see: they are constructed directly rather than inflated, so the tinting
+     * inflater never meets them.
+     */
+    fun applyTypography(view: View) {
+        val context = view.context ?: return
+        val ui = JinsoningenUi.get(context)
+        if (!ui.houseThemeActive) return
+        if (view is TextView) {
+            JinsoningenFonts.typeface(context, ui.fontFamilyId)?.let { view.typeface = it }
+            if (ui.fontItalic) {
+                view.setTypeface(view.typeface, android.graphics.Typeface.ITALIC)
+            }
+            if (ui.letterSpacing != 0) view.letterSpacing = ui.letterSpacing / 100f
+        }
+        if (view is ViewGroup) view.children.forEach { applyTypography(it) }
+    }
+
+    private fun forEachRecyclerView(view: View, action: (RecyclerView) -> Unit) {
+        if (view is RecyclerView) action(view)
+        if (view is ViewGroup) view.children.forEach { forEachRecyclerView(it, action) }
+    }
+
     // -------------------------------------------------------------------- paint
 
     /**
@@ -301,7 +357,24 @@ object JinsoningenViewTheme {
                 view.imageTintList = ColorStateList.valueOf(ui.iconColor)
             }
 
-            is RecyclerView -> view.setBackgroundColor(ui.background)
+            is RecyclerView -> {
+                view.setBackgroundColor(ui.background)
+                // Rows are created long after this screen was painted, and code-built ones never
+                // pass the inflater at all. Typography is the one pass that is safe to run on
+                // every row as it appears — it touches no colour, so an adapter's own choices
+                // survive it. Tagged so re-painting the tree cannot stack listeners.
+                if (view.getTag(R.id.jinsoningen_typography_hook) == null) {
+                    view.setTag(R.id.jinsoningen_typography_hook, true)
+                    view.addOnChildAttachStateChangeListener(
+                        object : RecyclerView.OnChildAttachStateChangeListener {
+                            override fun onChildViewAttachedToWindow(child: View) =
+                                applyTypography(child)
+
+                            override fun onChildViewDetachedFromWindow(child: View) = Unit
+                        },
+                    )
+                }
+            }
         }
     }
 
