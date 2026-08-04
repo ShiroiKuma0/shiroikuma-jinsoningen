@@ -113,6 +113,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * shiroikuma fork: refreshes the on-screen legacy hierarchy after any knob write. Posted to
+     * the view, so a slider being dragged coalesces onto the next frame rather than rebuilding a
+     * list on every pixel of travel.
+     */
+    private val uiChangeListener: () -> Unit = {
+        findViewById<View>(R.id.main_content)?.let { root ->
+            root.removeCallbacks(refreshRunnable)
+            root.post(refreshRunnable)
+        }
+    }
+
+    private val refreshRunnable = Runnable {
+        findViewById<View>(R.id.main_content)?.let(JinsoningenViewTheme::refreshTree)
+    }
+
+    /**
      * shiroikuma fork: applying the theme also publishes **which** look is in force, so the parts
      * of the house styling that live outside the theme — the Compose theme, the View tinter and
      * the patched attribute lookup — stand down when 白い熊 has picked Light. Without this the
@@ -168,6 +184,12 @@ class MainActivity : AppCompatActivity() {
             true,
         )
 
+        // shiroikuma fork: a knob change has to reach the legacy screens too. They cannot observe
+        // Compose state, so the UI state fires a plain listener and the visible hierarchy is
+        // refreshed from here — repainted, and its RecyclerViews rebuilt so the adapters that
+        // build their views in code resolve the new colours in their own constructors.
+        JinsoningenUi.get(this).addChangeListener(uiChangeListener)
+
         if (savedInstanceState == null) {
             cursorOwner = CursorOwner()
             supportFragmentManager.commit {
@@ -202,6 +224,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // shiroikuma fork: the UI state is a process-wide singleton, so an Activity that leaves
+        // without unregistering leaks itself through the listener set.
+        JinsoningenUi.get(this).removeChangeListener(uiChangeListener)
+        findViewById<View>(R.id.main_content)?.removeCallbacks(refreshRunnable)
         onBackPressedCallback = null
     }
 
