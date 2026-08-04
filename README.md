@@ -12,7 +12,7 @@ contract, and a Shizuku installer that prefers our own Shizuku.
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.4+009`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.4+010`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
@@ -109,8 +109,8 @@ differs. Renaming it would turn every upstream rebase into a mass conflict for n
 
 ## Versioning and branches
 
-`versionName` is upstream's version plus our build counter — `0.7.4+009` — and `versionCode` is
-upstream's code times 10 000 plus that counter (`740 × 10000 + 9 = 7400009`). The counter bumps on
+`versionName` is upstream's version plus our build counter — `0.7.4+010` — and `versionCode` is
+upstream's code times 10 000 plus that counter (`740 × 10000 + 10 = 7400010`). The counter bumps on
 every build and resets to `001` on every upstream sync, so `+N` always reads as "our Nth build on
 this upstream base".
 
