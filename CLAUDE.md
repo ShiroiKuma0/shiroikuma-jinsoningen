@@ -253,6 +253,7 @@ Base `v0.7.4` throughout. Tags carry no leading `v` and the counter is zero-padd
 | `0.7.4+008` | first published build — the UI page, Export/Import, the automation contract, the legacy-View theming, the icon, de-branding, dialog borders, the Shizuku preference |
 | `0.7.4+009` | the Light theme as a real escape hatch |
 | `0.7.4+010` | imported fonts reach code-built adapter views; knob changes refresh live legacy screens |
+| `0.7.4+011` | "Update all" answers the tap, and every list row shows its own download/install progress |
 
 ## Commit convention — no Claude attribution
 
