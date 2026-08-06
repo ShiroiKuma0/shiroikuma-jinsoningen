@@ -65,4 +65,19 @@
                 android:textColor="?attr/colorOutline" />
         </LinearLayout>
     </LinearLayout>
+
+    <!--
+      Sits on top of the row rather than in it: the card is a fixed 72dp, so a bar in the flow
+      would push the summary out. Gone unless the package is actually being worked on.
+    -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress"
+        style="@style/Theme.Progress.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="6dp"
+        android:visibility="gone"
+        tools:visibility="visible" />
 </com.google.android.material.card.MaterialCardView>

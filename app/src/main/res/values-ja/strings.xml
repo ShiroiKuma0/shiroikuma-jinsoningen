@@ -162,6 +162,7 @@
     <string name="prefs_personalization">個人用設定</string>
     <string name="show_less">表示を減らす</string>
     <string name="update_all">すべてアップデート</string>
+    <string name="updating_all">アップデート中…</string>
     <string name="available">探索</string>
     <string name="cleanup_title">APK の自動クリーンアップ間隔</string>
     <string name="incompatible_features_DESC">機能が不足しています。</string>
