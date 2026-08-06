@@ -13,10 +13,13 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import coil3.load
 import com.google.android.material.imageview.ShapeableImageView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.looker.droidify.R
 import com.looker.droidify.database.Database
+import com.looker.droidify.jinsoningen.JinsoningenViewTheme
 import com.looker.droidify.model.ProductItem
 import com.looker.droidify.model.Repository
+import com.looker.droidify.network.percentBy
 import com.looker.droidify.utility.common.extension.authentication
 import com.looker.droidify.utility.common.extension.corneredBackground
 import com.looker.droidify.utility.common.extension.dp
@@ -29,6 +32,7 @@ import com.looker.droidify.utility.extension.resources.TypefaceExtra
 import com.looker.droidify.widget.CursorRecyclerAdapter
 import kotlin.system.measureTimeMillis
 import com.google.android.material.R as MaterialR
+import com.looker.droidify.R.string as stringRes
 
 class AppListAdapter(
     private val source: AppListFragment.Source,
@@ -42,11 +46,20 @@ class AppListAdapter(
         val status = itemView.findViewById<TextView>(R.id.status)!!
         val summary = itemView.findViewById<TextView>(R.id.summary)!!
         val icon = itemView.findViewById<ShapeableImageView>(R.id.icon)!!
+        val progressBar = itemView.findViewById<LinearProgressIndicator>(R.id.progress)!!
+
+        /** What the row says when it is idle — the progress line borrows the summary while busy. */
+        var packageName: String = ""
+        var summaryText: CharSequence = ""
+        var summaryVisible: Boolean = false
 
         init {
             itemView.setOnClickListener {
                 log(measureTimeMillis { onClick(getPackageName(absoluteAdapterPosition)) }, "Bench")
             }
+            // AppCompat substitutes no progress indicator, so the tinting inflater never sees this
+            // one — paint the leaf here, the way the code-built adapters colour themselves.
+            JinsoningenViewTheme.paintTree(progressBar)
         }
     }
 
@@ -106,6 +119,17 @@ class AppListAdapter(
             }
         }
 
+    /**
+     * Live download/install state for every package on screen. Ticks often — hence the payload
+     * rebind, which touches the two views that changed and leaves the icon load alone.
+     */
+    var progress: AppListProgress = AppListProgress()
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!isEmpty) notifyItemRangeChanged(0, itemCount, PAYLOAD_PROGRESS)
+        }
+
     override val viewTypeClass: Class<ViewType>
         get() = ViewType::class.java
 
@@ -148,15 +172,31 @@ class AppListAdapter(
     private var installedForeground: ColorStateList? = null
     private var defaultForeground: ColorStateList? = null
 
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: List<Any>,
+    ) {
+        val progressOnly = payloads.isNotEmpty() && payloads.all { it == PAYLOAD_PROGRESS }
+        if (progressOnly && holder is ProductViewHolder) {
+            bindProgress(holder)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (getItemEnumViewType(position)) {
             ViewType.PRODUCT -> {
                 holder as ProductViewHolder
                 val productItem = getProductItem(position)
+                holder.packageName = productItem.packageName
                 holder.name.text = productItem.name
-                holder.summary.text = productItem.summary
-                holder.summary.isVisible = productItem.summary.isNotEmpty() &&
+                holder.summaryText = productItem.summary
+                holder.summaryVisible = productItem.summary.isNotEmpty() &&
                     productItem.name != productItem.summary
+                holder.summary.text = productItem.summary
+                holder.summary.isVisible = holder.summaryVisible
                 val repository = repositories[productItem.repositoryId]
                 if (repository != null) {
                     val iconUrl = productItem.icon(view = holder.icon, repository = repository)
@@ -217,6 +257,7 @@ class AppListAdapter(
                 holder.name.isEnabled = enabled
                 holder.status.isEnabled = enabled
                 holder.summary.isEnabled = enabled
+                bindProgress(holder)
             }
 
             ViewType.LOADING -> {
@@ -228,5 +269,78 @@ class AppListAdapter(
                 holder.text.text = emptyText
             }
         }
+    }
+
+    /**
+     * The busy half of a row: the summary line carries the state text and the bar underneath it
+     * carries the progress. An idle package restores the summary, so a row that finishes while it
+     * is on screen simply returns to what it said before.
+     */
+    private fun bindProgress(holder: ProductViewHolder) {
+        val status = progress statusOf holder.packageName
+        if (status == null) {
+            holder.progressBar.isVisible = false
+            holder.summary.text = holder.summaryText
+            holder.summary.isVisible = holder.summaryVisible
+            return
+        }
+        val context = holder.itemView.context
+        holder.summary.isVisible = true
+        when (status) {
+            ItemStatus.Queued -> {
+                holder.summary.setText(stringRes.waiting_to_start_download)
+                holder.progressBar.setIndeterminateSafely(true)
+            }
+
+            ItemStatus.Connecting -> {
+                holder.summary.setText(stringRes.connecting)
+                holder.progressBar.setIndeterminateSafely(true)
+            }
+
+            is ItemStatus.Downloading -> {
+                holder.summary.text = context.getString(
+                    stringRes.downloading_FORMAT,
+                    if (status.total == null) {
+                        status.read.toString()
+                    } else {
+                        "${status.read} / ${status.total}"
+                    },
+                )
+                val percent = status.read.value percentBy status.total?.value
+                if (percent < 0) {
+                    holder.progressBar.setIndeterminateSafely(true)
+                } else {
+                    holder.progressBar.setIndeterminateSafely(false)
+                    holder.progressBar.setProgressCompat(percent, true)
+                }
+            }
+
+            ItemStatus.PendingInstall -> {
+                holder.summary.setText(stringRes.waiting_to_start_installation)
+                holder.progressBar.setIndeterminateSafely(true)
+            }
+
+            ItemStatus.Installing -> {
+                holder.summary.setText(stringRes.installing)
+                holder.progressBar.setIndeterminateSafely(true)
+            }
+        }
+        holder.progressBar.isVisible = true
+    }
+
+    /**
+     * Material refuses to switch a *visible* indicator into indeterminate mode — and a row goes
+     * from a determinate download straight into an indeterminate install. Hide it for the switch.
+     */
+    private fun LinearProgressIndicator.setIndeterminateSafely(indeterminate: Boolean) {
+        if (isIndeterminate == indeterminate) return
+        val wasVisible = visibility == View.VISIBLE
+        if (wasVisible) visibility = View.INVISIBLE
+        isIndeterminate = indeterminate
+        if (wasVisible) visibility = View.VISIBLE
+    }
+
+    companion object {
+        private const val PAYLOAD_PROGRESS = "progress"
     }
 }
