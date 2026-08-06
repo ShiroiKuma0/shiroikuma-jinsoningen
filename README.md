@@ -8,11 +8,11 @@
 
 A fork of [Droid-ify](https://github.com/Droid-ify/client) with **major additions**: a full
 black-yellow theming page with live previews, imported fonts, a category backup with an automation
-contract, and a Shizuku installer that prefers our own Shizuku.
+contract, updates you can watch happen, and a Shizuku installer that prefers our own Shizuku.
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.4+010`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.4+011`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
@@ -85,6 +85,20 @@ same app.
 
 ---
 
+## ⬇️ Updates you can watch
+
+**Update all** used to be a button you pressed into silence: the work started, but nothing on screen
+moved. The rows carry no download state upstream, there is no snackbar, and the button never
+changes — so the only sign of life was a notification, and a row that disappeared half a minute
+later.
+
+Now the button answers the tap at once and stays disabled while the queue runs, and **every row
+narrates its own share of the work**: queued, connecting, downloading against a real progress bar
+with the byte count beside it, waiting on the installer, installing. When a package goes idle the
+row gets its summary back, so a list that finishes while you are looking at it simply goes quiet.
+
+---
+
 ## 🔌 Shizuku, ours first
 
 The Shizuku installer looks for **白い熊 雫 (`shiroikuma.shizuku`) first**, and only falls back to
@@ -109,8 +123,8 @@ differs. Renaming it would turn every upstream rebase into a mass conflict for n
 
 ## Versioning and branches
 
-`versionName` is upstream's version plus our build counter — `0.7.4+010` — and `versionCode` is
-upstream's code times 10 000 plus that counter (`740 × 10000 + 10 = 7400010`). The counter bumps on
+`versionName` is upstream's version plus our build counter — `0.7.4+011` — and `versionCode` is
+upstream's code times 10 000 plus that counter (`740 × 10000 + 11 = 7400011`). The counter bumps on
 every build and resets to `001` on every upstream sync, so `+N` always reads as "our Nth build on
 this upstream base".
 
