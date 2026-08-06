@@ -3,6 +3,39 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.4+011 — 2026-08-06
+
+### "Update all" reports what it is doing
+
+- The button was never dead: a tap enqueued the downloads and the installs ran. Nothing on screen
+  said so, though — the rows carry no download state, there is no snackbar, and the button itself
+  never changed — so the only feedback was a notification, and a row that vanished tens of seconds
+  later. It read as a dead button.
+- **The button answers the tap.** It switches to "アップデート中…" immediately, before the settings
+  read and the database query that precede the first download, and is disabled while work is in
+  flight — a second tap used to re-queue everything mid-flight. It holds that state for eight
+  seconds on the strength of the tap alone; real queue state takes over as soon as there is any,
+  and holds until the last install finishes.
+- **Every row carries its own state**, in the summary line with a slim bar along the bottom edge of
+  the card: download queued → connecting → downloading, `4.2 MB / 12.0 MB` against a determinate
+  bar → install queued → installing. Going idle restores the row's own summary. The list adapter is
+  shared, so the Explore and Installed tabs show it too. Every row string is upstream's own and
+  already translated; only the button's "Updating…" is new.
+- `AppListProgress` folds the download queue and the install queue into one state. `awaitingInstall`
+  covers the seam between them: a finished download leaves `DownloadService.State.Success` standing
+  while the file waits for `InstallManager` to claim it, and during an "update all" that wait lasts
+  as long as the install ahead of it — the row would otherwise look idle at exactly the moment it
+  sits between two queues. A package leaves the set the moment the installer reports any state of
+  its own, so a failed install — whose entry `SessionInstallerReceiver` removes again — cannot
+  strand a row on "queued".
+- Progress is reported per read, far faster than a list can usefully repaint, so the download state
+  is sampled at 200 ms and rows rebind through a RecyclerView payload: a tick touches the status
+  line and the bar, never the icon load.
+- Material refuses to switch a **visible** progress indicator into indeterminate mode, and every
+  download→install transition asks for exactly that; the row hides the bar across the switch.
+- The bar is painted by the fork's own paint routine, called on the leaf: AppCompat substitutes no
+  progress indicator, so the tinting inflater never sees one. Under Light it keeps stock colours.
+
 ## 0.7.4+010 — 2026-08-04
 
 ### Imported fonts reach the last screens that were missing them

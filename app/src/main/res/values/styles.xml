@@ -239,6 +239,12 @@
         <item name="trackCornerRadius">4dp</item>
     </style>
 
+    <!-- The same bar on a 72dp list row, where 8dp would read as a second element. -->
+    <style name="Theme.Progress.Row">
+        <item name="trackThickness">3dp</item>
+        <item name="trackCornerRadius">2dp</item>
+    </style>
+
     <style name="FavouriteTheme" parent="Widget.Material3.Button.IconButton">
         <item name="backgroundTint">?colorSurface</item>
         <item name="android:backgroundTint">?colorSurface</item>

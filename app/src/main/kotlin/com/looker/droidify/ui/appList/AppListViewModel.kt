@@ -9,22 +9,32 @@ import com.looker.droidify.database.Database
 import com.looker.droidify.datastore.SettingsRepository
 import com.looker.droidify.datastore.get
 import com.looker.droidify.datastore.model.SortOrder
+import com.looker.droidify.installer.InstallManager
+import com.looker.droidify.installer.model.InstallState
 import com.looker.droidify.model.ProductItem
 import com.looker.droidify.model.ProductItem.Section.All
+import com.looker.droidify.service.Connection
+import com.looker.droidify.service.DownloadService
 import com.looker.droidify.utility.common.extension.asStateFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class AppListViewModel
 @Inject constructor(
     settingsRepository: SettingsRepository,
+    installManager: InstallManager,
 ) : ViewModel() {
 
     private val skipSignatureStream = settingsRepository
@@ -60,10 +70,46 @@ class AppListViewModel
             .map { it.isNotEmpty() }
     }.asStateFlow(false)
 
+    /** Which packages the installer currently holds, keyed the way a list row knows itself. */
+    val installStates: StateFlow<Map<String, InstallState>> = installManager.state
+        .map { states -> states.mapKeys { (packageName, _) -> packageName.name } }
+        .asStateFlow(emptyMap())
+
+    private val _downloadState = MutableStateFlow(DownloadService.DownloadState())
+    val downloadState: StateFlow<DownloadService.DownloadState> = _downloadState.asStateFlow()
+
+    private var downloadStateJob: Job? = null
+
+    /**
+     * The download service reports progress per read, far faster than a list can usefully repaint —
+     * sampled here rather than in the fragment so every tab pays for it once.
+     */
+    @OptIn(FlowPreview::class)
+    val downloadConnection = Connection(
+        serviceClass = DownloadService::class.java,
+        onBind = { _, binder ->
+            downloadStateJob?.cancel()
+            downloadStateJob = viewModelScope.launch {
+                binder.downloadState
+                    .sample(PROGRESS_SAMPLING)
+                    .collect { _downloadState.value = it }
+            }
+        },
+        onUnbind = { _, _ ->
+            downloadStateJob?.cancel()
+            downloadStateJob = null
+            _downloadState.value = DownloadService.DownloadState()
+        },
+    )
+
     fun setSection(newSection: ProductItem.Section) {
         viewModelScope.launch {
             sections.emit(newSection)
         }
+    }
+
+    companion object {
+        private const val PROGRESS_SAMPLING = 200L
     }
 }
 
