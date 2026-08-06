@@ -17,7 +17,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.looker.droidify.R
 import com.looker.droidify.database.CursorOwner
 import com.looker.droidify.databinding.RecyclerViewWithFabBinding
+import com.looker.droidify.installer.model.InstallState
 import com.looker.droidify.model.ProductItem
+import com.looker.droidify.service.DownloadService
 import com.looker.droidify.utility.common.Scroller
 import com.looker.droidify.utility.common.extension.dp
 import com.looker.droidify.utility.common.extension.isFirstItemVisible
@@ -25,6 +27,8 @@ import com.looker.droidify.utility.common.extension.systemBarsMargin
 import com.looker.droidify.utility.common.extension.systemBarsPadding
 import com.looker.droidify.utility.extension.mainActivity
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.looker.droidify.R.string as stringRes
 
@@ -35,6 +39,9 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
 
         private const val EXTRA_SOURCE = "source"
         private const val EXTRA_SEARCH_QUERY = "search_query"
+
+        /** How long the button holds its working state on nothing but the tap. */
+        private const val UPDATE_ALL_HOLD = 8_000L
     }
 
     enum class Source(
@@ -68,6 +75,14 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
 
     private var searchQuery: String = ""
 
+    private var progress = AppListProgress()
+
+    /** Packages whose file is downloaded and whose install the installer has not claimed yet. */
+    private val awaitingInstall = mutableSetOf<String>()
+
+    private var updateAllRequested = false
+    private var updateAllRequestJob: Job? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -81,6 +96,7 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
 
         val viewModel = viewModel
         viewModel.syncConnection.bind(requireContext())
+        viewModel.downloadConnection.bind(requireContext())
 
         recyclerView = binding.recyclerView.apply {
             layoutManager = LinearLayoutManager(context)
@@ -95,7 +111,7 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
         with(fab) {
             if (source.updateAll) {
                 text = getString(stringRes.update_all)
-                setOnClickListener { viewModel.updateAll() }
+                setOnClickListener { startUpdateAll() }
                 setIconResource(R.drawable.ic_download)
                 alpha = 1f
                 viewLifecycleOwner.lifecycleScope.launch {
@@ -155,8 +171,62 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
                         )
                     }
                 }
+                launch {
+                    viewModel.downloadState.collect(::onDownloadState)
+                }
+                launch {
+                    viewModel.installStates.collect(::onInstallStates)
+                }
             }
         }
+    }
+
+    private fun startUpdateAll() {
+        viewModel.updateAll()
+        // Reading the settings and the database takes a moment before the first download reports
+        // in. The button says so immediately, and lets go on its own if nothing picks the work up.
+        updateAllRequested = true
+        updateFabState()
+        updateAllRequestJob?.cancel()
+        updateAllRequestJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(UPDATE_ALL_HOLD)
+            updateAllRequested = false
+            updateFabState()
+        }
+    }
+
+    private fun onDownloadState(state: DownloadService.DownloadState) {
+        if (state.currentItem is DownloadService.State.Success) {
+            awaitingInstall += state.currentItem.packageName
+        }
+        applyProgress(progress.copy(download = state, awaitingInstall = awaitingInstall.toSet()))
+    }
+
+    private fun onInstallStates(states: Map<String, InstallState>) {
+        // Once the installer holds a package, its own state is what the row should show — and a
+        // failed install, whose entry the receiver drops again, no longer leaves the row hanging.
+        awaitingInstall.removeAll(states.keys)
+        applyProgress(progress.copy(installs = states, awaitingInstall = awaitingInstall.toSet()))
+    }
+
+    private fun applyProgress(newProgress: AppListProgress) {
+        progress = newProgress
+        appListAdapter.progress = newProgress
+        if (newProgress.isWorking) {
+            updateAllRequested = false
+            updateAllRequestJob?.cancel()
+            updateAllRequestJob = null
+        }
+        updateFabState()
+    }
+
+    private fun updateFabState() {
+        if (!source.updateAll) return
+        val fab = _binding?.scrollUp ?: return
+        val working = updateAllRequested || progress.isWorking
+        fab.setText(if (working) stringRes.updating_all else stringRes.update_all)
+        // A second tap would re-queue everything mid-flight.
+        fab.isEnabled = !working
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -170,6 +240,9 @@ class AppListFragment() : Fragment(), CursorOwner.Callback {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        updateAllRequestJob?.cancel()
+        updateAllRequestJob = null
+        viewModel.downloadConnection.unbind(requireContext())
         viewModel.syncConnection.unbind(requireContext())
         _binding = null
         scroller = null
