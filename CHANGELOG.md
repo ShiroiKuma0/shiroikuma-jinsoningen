@@ -3,6 +3,55 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.5+001 — 2026-08-16
+
+Built on upstream **`v0.7.5`** (the previous base was `v0.7.4`). This is a sync release: it carries
+upstream's new work and the fork's own patches re-landed on top of it. No fork feature changed.
+
+### What upstream brings
+
+- **Networking moved from Ktor to plain OkHttp.** `KtorDownloader` became `OkHttpDownloader`, the
+  header builders became okhttp's own `Headers`, and image loading switched to Coil's OkHttp
+  fetcher. One less layer under every download, sync and icon fetch; behaviour is unchanged.
+- **Installs are more reliable.** The installer used to be one long-lived instance closed after each
+  job, which could leave the queue wedged after a settings change; each job now builds its own and
+  catches its own failures, so one bad install marks that package failed instead of jamming
+  everything behind it.
+- **Sync failure notifications name the status code** — "Invalid server response: HTTP 404" rather
+  than a bare "Invalid server response".
+- **The download-stats worker no longer busy-waits**, which was burning CPU on the first launch
+  after an install.
+- **Metadata is parsed to the F-Droid server spec**, so fields that were being dropped now survive;
+  the dead `flattrID` property is gone.
+- **The install button's width matches the header** it sits under on the app page.
+- New **Kurdish (Kurmanji)** translation, plus 76 Weblate updates across 20 locales — the Japanese
+  strings in particular got a large rework.
+- Housekeeping with no user-visible effect: the `alpha` build type is gone, core-library desugaring
+  and `kotlinx-datetime` are dropped, `BootReceiver` moved out of the `Application` class, sync
+  scheduling moved into `SyncService`, and an allocation pass went over the tab, repo-edit and
+  app-detail code.
+
+### What the fork had to re-land
+
+- **Our User-Agent survived the OkHttp rewrite.** Upstream replaced the whole HTTP-client provider,
+  so the identity had to move from Ktor's `UserAgent` plugin into the new request interceptor; the
+  app still identifies itself as `shiroikuma-jinsoningen/<version>`, never as Droid-ify.
+- **Our bordered dialogs survived the icon-library removal.** Upstream dropped Compose's
+  `material-icons-extended` for local vector drawables, rewriting the exact import blocks where the
+  repo-detail and custom-button screens pull in our yellow-edged `AlertDialog`. Both changes are
+  kept — the icons are upstream's new drawables, the dialogs are still ours.
+- **The app-list title still reads from `application_name`**, so the Compose list header says
+  白い熊 人造人間 rather than the upstream name it was reverted to.
+- Upstream deleted two of its own CI workflows this release; the fork's removal of all five stands,
+  and the fork still builds and signs locally rather than in CI.
+
+### Packaging
+
+- `versionName` `0.7.5+001`, `versionCode` `7500001` (`750 × 10000 + 1`) — the build counter resets
+  to `001` on every upstream sync.
+- Built with AGP 9.3.0 on Gradle 9.6.1, both upstream's bump.
+- Upstream removed its `docs/` directory, so the README's build notes no longer point at it.
+
 ## 0.7.4+011 — 2026-08-06
 
 ### "Update all" reports what it is doing
