@@ -41,7 +41,7 @@ apply here — we use the plain `+NNN` versionName.
 | App label | `白い熊 人造人間` | `application_name` in `app/src/main/res/values/strings.xml` |
 | App icon | black-yellow traced line-art (yellow `#FFFF00` on black) | `design/…icon.svg` → `drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/`, `ic_launcher-playstore.png` |
 | Version tail | `versionName = "<upstream>+NNN"`, `versionCode = <upstream code>*10000+N` | `app/build.gradle.kts` fork blocks |
-| `BuildConfig.VERSION_NAME` | our fork version (`0.7.4+010`), not upstream's `v0.7.4` | `app/build.gradle.kts` → `buildTypes { all { } }` |
+| `BuildConfig.VERSION_NAME` | our fork version (`0.7.5+001`), not upstream's `v0.7.5` | `app/build.gradle.kts` → `buildTypes { all { } }` |
 | Signing | gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-jinsoningen.jks` (alias `jinsoningen`) | `app/build.gradle.kts` |
 | House theme | `Theme.Main.Jinsoningen` for every theme choice except Light | `values/jinsoningen_theme.xml`, `datastore/extension/Preferences.kt` |
 | Toolbar cog | tap → Settings, long-press → the UI page | `ui/tabsFragment/TabsFragment.kt`, `drawable/ic_settings.xml`, `values/ids.xml` |
@@ -49,12 +49,12 @@ apply here — we use the plain `+NNN` versionName.
 
 ### Versioning & APK naming
 
-- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.4"`
-  and `versionCode = 740` literals. Our fork lines sit **immediately after** them and multiply/append,
+- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.5"`
+  and `versionCode = 750` literals. Our fork lines sit **immediately after** them and multiply/append,
   so a rebase brings the new base in automatically. **Never hand-edit those two literals.**
 - `BUILD_NUMBER` (in `gradle.properties`) is our per-build `N`:
-  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.4+010`),
-  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7400010`).
+  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.5+001`),
+  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7500001`).
   The `buildFork` task bumps `BUILD_NUMBER` after every successful build; `/upstream-new-version`
   resets it to `1` on every sync, so `+N` always reads as "our Nth build on this upstream base".
 - APK: `shiroikuma-jinsoningen_<versionName>.apk`, copied to `~/tmp/`. **No ABI suffix** — the app has
@@ -72,8 +72,8 @@ JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/andro
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/android-sdk ./gradlew :app:testDebugUnitTest
 ```
 
-The `alpha` and `debug` build types are upstream's (`.alpha` / `.debug` applicationId suffixes) — we
-build and ship `release` only.
+The `debug` build type is upstream's (`.debug` applicationId suffix) — we build and ship `release`
+only. Upstream's third type, `alpha`, was removed in `v0.7.5`; don't be surprised by its absence.
 
 ### Toolchain
 
@@ -209,7 +209,7 @@ is not.
 | Repository sync + index parsing (V1/V2) | `sync/`, `index/` |
 | Room DB + legacy SQLite | `data/local/`, `database/` |
 | Installers (session, root, Shizuku, legacy) | `installer/` |
-| Networking (OkHttp/Ktor, User-Agent) | `network/`, `di/NetworkModule.kt` |
+| Networking (OkHttp, User-Agent) | `network/`, `di/NetworkModule.kt` |
 | Settings storage (DataStore proto) | `datastore/` |
 | Deep links | `utility/common/Deeplinks.kt` |
 
@@ -246,14 +246,16 @@ third-party attribution, not upstream's own branding.
 
 ## Releases so far
 
-Base `v0.7.4` throughout. Tags carry no leading `v` and the counter is zero-padded.
+Tags carry no leading `v` and the counter is zero-padded. The `+NNN` counter restarts at `001` on
+every upstream sync, so the base changes down this table.
 
-| Tag | What it added |
-| --- | --- |
-| `0.7.4+008` | first published build — the UI page, Export/Import, the automation contract, the legacy-View theming, the icon, de-branding, dialog borders, the Shizuku preference |
-| `0.7.4+009` | the Light theme as a real escape hatch |
-| `0.7.4+010` | imported fonts reach code-built adapter views; knob changes refresh live legacy screens |
-| `0.7.4+011` | "Update all" answers the tap, and every list row shows its own download/install progress |
+| Tag | Base | What it added |
+| --- | --- | --- |
+| `0.7.4+008` | `v0.7.4` | first published build — the UI page, Export/Import, the automation contract, the legacy-View theming, the icon, de-branding, dialog borders, the Shizuku preference |
+| `0.7.4+009` | `v0.7.4` | the Light theme as a real escape hatch |
+| `0.7.4+010` | `v0.7.4` | imported fonts reach code-built adapter views; knob changes refresh live legacy screens |
+| `0.7.4+011` | `v0.7.4` | "Update all" answers the tap, and every list row shows its own download/install progress |
+| `0.7.5+001` | `v0.7.5` | sync release, no fork feature change — upstream's Ktor→OkHttp migration (our User-Agent re-landed in the new interceptor), installer reliability, status codes in sync-failure notifications, the Compose icons library dropped (our bordered dialogs kept) |
 
 ## Commit convention — no Claude attribution
 

@@ -12,7 +12,7 @@ contract, updates you can watch happen, and a Shizuku installer that prefers our
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.4+011`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.5+001`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
@@ -123,13 +123,13 @@ differs. Renaming it would turn every upstream rebase into a mass conflict for n
 
 ## Versioning and branches
 
-`versionName` is upstream's version plus our build counter — `0.7.4+011` — and `versionCode` is
-upstream's code times 10 000 plus that counter (`740 × 10000 + 11 = 7400011`). The counter bumps on
+`versionName` is upstream's version plus our build counter — `0.7.5+001` — and `versionCode` is
+upstream's code times 10 000 plus that counter (`750 × 10000 + 1 = 7500001`). The counter bumps on
 every build and resets to `001` on every upstream sync, so `+N` always reads as "our Nth build on
 this upstream base".
 
 - **`custom`** — all our work; the default branch.
-- **`main`** — mirrors the upstream **release tag** we are based on (currently `v0.7.4`).
+- **`main`** — mirrors the upstream **release tag** we are based on (currently `v0.7.5`).
 
 Upstream is tracked by release tag rather than by branch tip, so every base is a state upstream
 itself called finished.
@@ -142,8 +142,9 @@ JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork
 
 `buildFork` assembles the signed release, copies it to `~/tmp/` as
 `shiroikuma-jinsoningen_<version>.apk`, and bumps the build counter. Signing reads a gitignored
-`keystore.properties` at the repo root. Upstream's own [building guide](docs/building.md) still
-applies for everything else.
+`keystore.properties` at the repo root; without it the build still succeeds but the APK is unsigned.
+Gradle runs on JDK 21, while the build itself declares a JDK 17 toolchain that is downloaded on
+first use. The APK is universal — the app has no native code, so there are no ABI splits.
 
 ## Licence
 
