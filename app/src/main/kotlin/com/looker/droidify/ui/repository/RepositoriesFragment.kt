@@ -41,7 +41,9 @@ class RepositoriesFragment : ScreenFragment(), CursorOwner.Callback {
                         ).show()
                     return@registerForActivityResult
                 }
-                EditRepositoryFragment(null, content)
+                // shiroikuma fork: upstream constructed the fragment here and dropped it on the
+                // floor, so a successful scan did nothing. Push it, seeded with the scanned address.
+                mainActivity.navigateAddRepository(content)
             }
 
             is QRResult.QRUserCanceled -> Unit
