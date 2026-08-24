@@ -31,6 +31,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.divider.MaterialDivider
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputLayout
@@ -286,6 +287,15 @@ object JinsoningenViewTheme {
                 view.setTextColor(ui.background)
                 view.iconTint = ColorStateList.valueOf(ui.background)
                 applyType(view, ui, ui.background)
+            }
+
+            // A plain FAB is the SECONDARY action beside an extended one (the QR scanner next to
+            // "Add repository"), so it takes the outlined treatment rather than a second accent
+            // slab: a surface ground with the accent on the icon. This branch must stay above
+            // `is ImageView`, which would otherwise swallow it and only re-tint the icon.
+            is FloatingActionButton -> {
+                view.backgroundTintList = ColorStateList.valueOf(ui.surface)
+                view.imageTintList = ColorStateList.valueOf(ui.accentColor)
             }
 
             is MaterialButton -> {
