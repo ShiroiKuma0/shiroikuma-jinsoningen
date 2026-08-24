@@ -41,7 +41,7 @@ apply here — we use the plain `+NNN` versionName.
 | App label | `白い熊 人造人間` | `application_name` in `app/src/main/res/values/strings.xml` |
 | App icon | black-yellow traced line-art (yellow `#FFFF00` on black) | `design/…icon.svg` → `drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/`, `ic_launcher-playstore.png` |
 | Version tail | `versionName = "<upstream>+NNN"`, `versionCode = <upstream code>*10000+N` | `app/build.gradle.kts` fork blocks |
-| `BuildConfig.VERSION_NAME` | our fork version (`0.7.5+001`), not upstream's `v0.7.5` | `app/build.gradle.kts` → `buildTypes { all { } }` |
+| `BuildConfig.VERSION_NAME` | our fork version (`0.7.6+001`), not upstream's `v0.7.6` | `app/build.gradle.kts` → `buildTypes { all { } }` |
 | Signing | gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-jinsoningen.jks` (alias `jinsoningen`) | `app/build.gradle.kts` |
 | House theme | `Theme.Main.Jinsoningen` for every theme choice except Light | `values/jinsoningen_theme.xml`, `datastore/extension/Preferences.kt` |
 | Toolbar cog | tap → Settings, long-press → the UI page | `ui/tabsFragment/TabsFragment.kt`, `drawable/ic_settings.xml`, `values/ids.xml` |
@@ -49,12 +49,12 @@ apply here — we use the plain `+NNN` versionName.
 
 ### Versioning & APK naming
 
-- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.5"`
-  and `versionCode = 750` literals. Our fork lines sit **immediately after** them and multiply/append,
+- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.6"`
+  and `versionCode = 760` literals. Our fork lines sit **immediately after** them and multiply/append,
   so a rebase brings the new base in automatically. **Never hand-edit those two literals.**
 - `BUILD_NUMBER` (in `gradle.properties`) is our per-build `N`:
-  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.5+001`),
-  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7500001`).
+  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.6+001`),
+  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7600001`).
   The `buildFork` task bumps `BUILD_NUMBER` after every successful build; `/upstream-new-version`
   resets it to `1` on every sync, so `+N` always reads as "our Nth build on this upstream base".
 - APK: `shiroikuma-jinsoningen_<versionName>.apk`, copied to `~/tmp/`. **No ABI suffix** — the app has
@@ -142,6 +142,11 @@ On a knob change the UI state fires its listener, and `MainActivity` calls
   view-holder constructor via `getColorFromAttr` — so their colours are knob-correct **when built**.
   To refresh them, `refreshTree` detaches and re-attaches the adapter; `notifyDataSetChanged()`
   alone re-binds the holders it already has and never re-runs `onCreateViewHolder`.
+- **`paintTree`'s `when` is ordered, and two arms are load-bearing.** `ExtendedFloatingActionButton`
+  must precede `MaterialButton` (it *is* one), and `FloatingActionButton` — a plain FAB, which
+  shares none of that hierarchy — must precede `ImageView`, which matches it and would consume it
+  while re-tinting only the icon, leaving Material's stock background. Adding a branch means
+  choosing its position, not appending it.
 - **`JinsoningenUiState` writers are `updateX()`, not `setX()`** — the properties' generated setters
   already own the `setX` JVM signature, and a clash is a compile error.
 - **The UI state is a process-wide singleton** (`JinsoningenUi.get`), because the legacy Fragment
@@ -256,6 +261,7 @@ every upstream sync, so the base changes down this table.
 | `0.7.4+010` | `v0.7.4` | imported fonts reach code-built adapter views; knob changes refresh live legacy screens |
 | `0.7.4+011` | `v0.7.4` | "Update all" answers the tap, and every list row shows its own download/install progress |
 | `0.7.5+001` | `v0.7.5` | sync release, no fork feature change — upstream's Ktor→OkHttp migration (our User-Agent re-landed in the new interceptor), installer reliability, status codes in sync-failure notifications, the Compose icons library dropped (our bordered dialogs kept) |
+| `0.7.6+001` | `v0.7.6` | upstream's QR-code repository scanner and repo icons, plus two fork fixes on top: upstream's scan-success path was a no-op, and its new plain FAB needed a `paintTree` branch to take the house look |
 
 ## Commit convention — no Claude attribution
 

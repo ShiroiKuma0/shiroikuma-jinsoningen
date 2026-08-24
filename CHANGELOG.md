@@ -3,6 +3,63 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.6+001 — 2026-08-24
+
+Built on upstream **`v0.7.6`** (the previous base was `v0.7.5`). A sync release, but not a silent
+one: upstream's headline feature shipped with its success path unfinished, and its new button
+arrived outside the fork's theming, so both are fixed here.
+
+### What upstream brings
+
+- **Add a repository by scanning a QR code.** The repository screen gains a second, smaller button
+  above "Add repository" that opens a camera scanner. This pulls in QuickieFOSS — a camera-based,
+  ML-free QR decoder — so the app now requests the **camera permission**, which it never did before.
+  The permission is only ever exercised by opening the scanner.
+- **Repository icons are shown.** Each row in the repository list fetches the repo's own
+  `icons/icon.png`, sent with that repository's credentials, instead of leaving the icon blank.
+- **Cache cleanup actually runs.** The cleanup schedule was subscribed in a way that skipped its
+  first value, so on a fresh install nothing was ever cleaned up until the interval setting was
+  changed by hand. Cleanup also moved off a raw thread onto a coroutine.
+- **A failed download no longer leaves its partial file behind** when the server answers with an
+  HTTP error, so a retry starts clean.
+- **Repository rows sit flush** with the rest of the app — the 12 dp side margin is gone — and a
+  disabled repository shows a plain state chip rather than a cancel cross.
+- `UnarchiveWorker` logged under `CleanUpWorker`'s tag, so its messages were filed under the wrong
+  worker.
+- Weblate updates across seven locales. Japanese is untouched this cycle.
+- Housekeeping with no user-visible effect: AGP 9.3.1, core-library desugaring turned back on (the
+  scanner needs it), the FAB inset helper takes a size rather than a boolean, and upstream replaced
+  its own `update.sh` release script with `release.sh`.
+
+### What the fork adds on top
+
+- **A scanned QR code now actually opens the add-repository editor.** Upstream built the editor
+  fragment on a successful scan and then threw it away without ever showing it, so scanning a valid
+  repository address did nothing — no editor, no error, no feedback. Every other outcome (cancel,
+  denied permission, unreadable code, empty content) was wired up correctly, which is what made the
+  feature look finished. The scan result is now handed to the same navigation the "Add repository"
+  button uses, with the scanned address pre-filled.
+- **The scanner button takes the house look.** The theming pass covered extended FABs, but a plain
+  FAB is a different class hierarchy entirely and nothing in the app had used one before, so
+  upstream's new scanner button turned up in Material's stock colours on our black ground. A plain
+  FAB standing beside an extended one is the secondary action, so it now takes the outlined
+  treatment the fork already gives secondary buttons — a surface ground with the accent on the icon
+  — instead of competing with the primary button for attention.
+
+### Packaging
+
+- `versionName` `0.7.6+001`, `versionCode` `7600001` (`760 × 10000 + 1`) — the build counter resets
+  to `001` on every upstream sync.
+- The APK now carries `android.permission.CAMERA`, merged in by the QuickieFOSS library rather than
+  declared by us.
+- Built with AGP 9.3.1, upstream's bump.
+
+### Known limitation
+
+The scanner screen itself belongs to the QuickieFOSS library and is its own Activity, so it sits
+outside the fork's theming and keeps the library's own appearance. It is almost entirely camera
+preview, so there is little chrome to clash.
+
 ## 0.7.5+001 — 2026-08-16
 
 Built on upstream **`v0.7.5`** (the previous base was `v0.7.4`). This is a sync release: it carries
