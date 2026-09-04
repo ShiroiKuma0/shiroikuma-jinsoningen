@@ -243,13 +243,21 @@ fun JinsoningenUiScreen(onBackClick: () -> Unit) {
 }
 
 /**
- * The two contract rows: a master switch (default OFF — nothing is reachable from outside until
- * 白い熊 turns it on) and the token, abbreviated, copied on tap, regenerated on the right.
+ * The three contract-v2 rows, in the order every sister app shows them.
+ *
+ * The master switch now ships **ON** and the token is **opt-in**: a pasted secret cannot survive a
+ * wipe, and the case this family exists to serve is 白い熊 応用管理 restoring apps *and their data*
+ * onto a clean phone where nothing has been configured (白い熊, 2026-09-04). So there is nothing to
+ * turn on and nothing to paste — this app is already on the batch.
+ *
+ * The token row appears only while row 2 asks for one: a 48-character secret sitting under an off
+ * switch invites 白い熊 to paste it somewhere it will do nothing.
  */
 @Composable
 private fun AutomationRows(ui: JinsoningenUiState) {
     val context = LocalContext.current
     var enabled by remember { mutableStateOf(AutomationAuth.enabled(context)) }
+    var requireToken by remember { mutableStateOf(AutomationAuth.requireToken(context)) }
     var token by remember { mutableStateOf(AutomationAuth.token(context)) }
 
     ToggleRow(ui, "Automation export", enabled) {
@@ -257,7 +265,8 @@ private fun AutomationRows(ui: JinsoningenUiState) {
         enabled = it
     }
     Text(
-        text = "Lets 白い熊 自由作業盤 trigger this app's export through the token-gated intent.",
+        text = "Lets sister apps trigger this app's export, and lets 白い熊 応用管理 back its data " +
+            "up and put it back.",
         color = Color(ui.textDimColor),
         fontSize = ui.labelSize.sp,
         modifier = Modifier.padding(
@@ -266,6 +275,24 @@ private fun AutomationRows(ui: JinsoningenUiState) {
             bottom = ui.rowPadding.dp,
         ),
     )
+
+    ToggleRow(ui, "Use authorization token?", requireToken) {
+        AutomationAuth.setRequireToken(context, it)
+        requireToken = it
+    }
+    Text(
+        text = "Off: any sister app may drive the automation. On: a caller must also present the " +
+            "token below. Either way the data door checks the caller's package and signature.",
+        color = Color(ui.textDimColor),
+        fontSize = ui.labelSize.sp,
+        modifier = Modifier.padding(
+            start = rowIndent(ui, false),
+            end = 16.dp,
+            bottom = ui.rowPadding.dp,
+        ),
+    )
+
+    if (!requireToken) return
     Row(
         modifier = Modifier
             .fillMaxWidth()

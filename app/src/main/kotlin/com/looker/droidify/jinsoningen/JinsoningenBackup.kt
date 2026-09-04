@@ -34,6 +34,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -211,9 +212,18 @@ object JinsoningenBackup {
 
     // ------------------------------------------------------------------ import
 
-    fun categoriesIn(bytes: ByteArray): Set<Cat> {
+    fun categoriesIn(bytes: ByteArray): Set<Cat> = categoriesIn { bytes.inputStream() }
+
+    /**
+     * The same scan over an archive that need never be held in memory.
+     *
+     * [open] is a **factory**, not a stream: reading a ZIP costs two passes here — once to see what
+     * the archive carries and once to apply it — and a spooled import must be able to open the file
+     * again rather than rewind a descriptor it does not own.
+     */
+    fun categoriesIn(open: () -> InputStream): Set<Cat> {
         val found = mutableSetOf<Cat>()
-        ZipInputStream(bytes.inputStream()).use { zip ->
+        ZipInputStream(open()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
                 Cat.ofEntry(entry.name)?.let { found += it }
@@ -227,16 +237,39 @@ object JinsoningenBackup {
      * Applies the ticked [categories]. Absent ones are skipped, present ones merge per key.
      * @return how many categories were restored.
      */
-    suspend fun restore(context: Context, bytes: ByteArray, categories: Set<Cat>): Int {
+    suspend fun restore(context: Context, bytes: ByteArray, categories: Set<Cat>): Int =
+        restore(context, categories) { bytes.inputStream() }
+
+    /**
+     * The same restore over an archive that need never be held in memory — see [categoriesIn] for
+     * why [open] is a factory. The automation import spools the caller's descriptor to a cache file
+     * and passes that: an imported archive is as large as the fonts inside it, and a byte array
+     * puts that bound in RAM.
+     *
+     * @param durable persist the UI knobs synchronously rather than through `apply()`. Set by the
+     *   automation import only: 応用管理 `SIGKILL`s us the moment we reply `OK`, which would discard
+     *   a queued write. The panel leaves it false because it calls this on the **main** dispatcher,
+     *   where a blocking prefs write does not belong — and an `apply()` there is flushed by the
+     *   framework at the orderly shutdown its "Restart now" performs. Every other category is
+     *   already durable on return: DataStore persists before `updateData` resumes, SQLite and the
+     *   font files are written straight through.
+     */
+    suspend fun restore(
+        context: Context,
+        categories: Set<Cat>,
+        durable: Boolean = false,
+        open: () -> InputStream,
+    ): Int {
         val seen = mutableSetOf<Cat>()
-        ZipInputStream(bytes.inputStream()).use { zip ->
+        ZipInputStream(open()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
                 val cat = Cat.ofEntry(entry.name)
                 if (cat != null && cat in categories) {
                     val content = zip.readBytes()
                     when (cat) {
-                        Cat.UI -> JinsoningenUiConfig(context).fromJson(JSONObject(String(content)))
+                        Cat.UI -> JinsoningenUiConfig(context)
+                            .fromJson(JSONObject(String(content)), commit = durable)
                         Cat.SETTINGS -> restoreSettings(context, content)
                         Cat.REPOSITORIES -> restoreRepositories(content)
                         Cat.CUSTOM_BUTTONS -> restoreCustomButtons(context, content)

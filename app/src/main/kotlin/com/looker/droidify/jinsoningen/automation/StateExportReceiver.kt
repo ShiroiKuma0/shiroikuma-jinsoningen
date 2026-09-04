@@ -14,12 +14,15 @@ import com.looker.droidify.jinsoningen.JinsoningenBackup
 /**
  * The exported receiver 白い熊 自由作業盤 fires at, carrying the three contract actions.
  *
- * It does **no work**: it checks the switch and the token, answers `LIST_CATEGORIES` inline
- * (instant), hands `EXPORT_STATE` to a foreground service and returns at once, and signals a
- * running export for `CANCEL_EXPORT`. A manifest receiver must reach `finish()` inside Android's
- * broadcast window — running an export here is what gets an app ANR'd and killed mid-write.
+ * It does **no work**: it checks the gate, answers `LIST_CATEGORIES` inline (instant), hands
+ * `EXPORT_STATE` to a foreground service and returns at once, and signals a running export for
+ * `CANCEL_EXPORT`. A manifest receiver must reach `finish()` inside Android's broadcast window —
+ * running an export here is what gets an app ANR'd and killed mid-write.
  *
- * No `android:permission` on the receiver: the caller cannot hold one, so the token is the gate.
+ * No `android:permission` on the receiver, and since contract v2 no compulsory token either: this
+ * is deliberately the **unauthenticated** half of the surface. It only ever writes where it was
+ * told to and reports what it did. Everything that moves data through a caller-supplied descriptor
+ * lives behind [AutomationProvider], which knows who is calling. `import` is there and only there.
  */
 class StateExportReceiver : BroadcastReceiver() {
 
@@ -34,11 +37,7 @@ class StateExportReceiver : BroadcastReceiver() {
                 val replyPackage = intent.getStringExtra(EXTRA_REPLY_PACKAGE) ?: return
                 val replyId = intent.getStringExtra(EXTRA_REPLY_ID) ?: return
 
-                val result = when {
-                    !AutomationAuth.enabled(app) -> "ERROR:automation disabled"
-                    !AutomationAuth.isTokenValid(app, token) -> "ERROR:bad token"
-                    else -> "OK:" + categoryLines()
-                }
+                val result = AutomationAuth.refuse(app, token) ?: ("OK:" + categoryLines())
                 reply(app, replyAction, replyPackage, replyId, result)
             }
 
@@ -47,12 +46,8 @@ class StateExportReceiver : BroadcastReceiver() {
                 val replyPackage = intent.getStringExtra(EXTRA_REPLY_PACKAGE) ?: return
                 val replyId = intent.getStringExtra(EXTRA_REPLY_ID) ?: return
 
-                if (!AutomationAuth.enabled(app)) {
-                    reply(app, replyAction, replyPackage, replyId, "ERROR:automation disabled")
-                    return
-                }
-                if (!AutomationAuth.isTokenValid(app, token)) {
-                    reply(app, replyAction, replyPackage, replyId, "ERROR:bad token")
+                AutomationAuth.refuse(app, token)?.let { refusal ->
+                    reply(app, replyAction, replyPackage, replyId, refusal)
                     return
                 }
 
@@ -87,8 +82,7 @@ class StateExportReceiver : BroadcastReceiver() {
 
             "${app.packageName}$ACTION_CANCEL_EXPORT" -> {
                 // Fire-and-forget, and a silent no-op when nothing is running.
-                if (!AutomationAuth.enabled(app)) return
-                if (!AutomationAuth.isTokenValid(app, token)) return
+                if (AutomationAuth.refuse(app, token) != null) return
                 StateExportService.requestCancel(intent.getStringExtra(EXTRA_REPLY_ID))
             }
         }

@@ -6,6 +6,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- shiroikuma fork: the 保存復元 data door's foreground service (contract v2 §2a). It is
+         neither a sync nor a download — it streams this app's own backup into a descriptor another
+         app opened — so "specialUse" is the honest type, and API 34+ requires this permission for
+         it. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -30,6 +35,15 @@
          stock Shizuku. The Shizuku API library merges the stock one in for us; this is the other
          half, so our own Shizuku can grant us too. -->
     <uses-permission android:name="af.shizuku.plus.permission.API_V23" />
+
+    <!-- shiroikuma fork: contract v2 §4. Without naming the caller here our reply broadcast's
+         setPackage() fails **silently** on Android 11+ — the export runs, writes correctly, and is
+         never heard of. QUERY_ALL_PACKAGES above happens to cover it today; this states the
+         dependency so it survives that permission being narrowed. -->
+    <queries>
+        <package android:name="shiroikuma.oyokanri" />
+        <package android:name="shiroikuma.jiyusagyoban" />
+    </queries>
 
     <uses-feature
         android:name="android.software.leanback"
@@ -201,6 +215,43 @@
             android:name=".jinsoningen.automation.StateExportService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- shiroikuma fork: the 保存復元 data door (contract v2 §2a) — the half that knows WHO is
+             calling, and therefore the only place `import` exists. The receiver above is exported
+             with no permission and an import there would let any app on the phone wipe this one.
+             No android:permission here either, and this time for a real reason: a custom permission
+             would have to be `normal` (any app may hold it) or `signature` (impossible — every app
+             in this family has its own keystore), and neither buys anything AutomationCallers's
+             exact-name + uid + pinned-certificate check does not. -->
+        <provider
+            android:name=".jinsoningen.automation.AutomationProvider"
+            android:authorities="${applicationId}.automation"
+            android:exported="true" />
+
+        <service
+            android:name=".jinsoningen.automation.AutomationDataService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Automation data export/import" />
+        </service>
+
+        <!-- Capability discovery, readable WITHOUT waking this app: 応用管理 builds its list across
+             every installed package at once with MATCH_UNINSTALLED_PACKAGES |
+             MATCH_DISABLED_COMPONENTS, and 白い熊 freezes apps aggressively — a frozen app cannot be
+             asked anything. `format` must stay in step with AutomationProvider.FORMAT, which is
+             JinsoningenBackup.VERSION. An app without these entries is simply not offered for data
+             backup or restore. -->
+        <meta-data
+            android:name="shiroikuma.automation.contract"
+            android:value="2" />
+        <meta-data
+            android:name="shiroikuma.automation.format"
+            android:value="1" />
+        <meta-data
+            android:name="shiroikuma.automation.min_format"
+            android:value="1" />
 
         <receiver
             android:name=".installer.installers.session.SessionInstallerReceiver"
