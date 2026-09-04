@@ -132,7 +132,16 @@ class StateExportService : Service() {
             categories = categories,
             out = bytes,
             onProgress = { cat, position, total ->
-                sendProgress(progressAction, replyPackage, replyId, cat, position, total)
+                // The one sender, shared with the data door — see AutomationProgress.
+                AutomationProgress.send(
+                    context = this@StateExportService,
+                    progressAction = progressAction,
+                    replyPackage = replyPackage,
+                    correlationId = replyId,
+                    cat = cat,
+                    position = position,
+                    total = total,
+                )
             },
             isCancelled = { cancelled },
         )
@@ -206,31 +215,6 @@ class StateExportService : Service() {
             part.delete()
             null
         }
-    }
-
-    /** Real numbers, never a percentage — and `item` is what moves the panel's highlight. */
-    private fun sendProgress(
-        progressAction: String?,
-        replyPackage: String,
-        replyId: String,
-        cat: JinsoningenBackup.Cat,
-        position: Int,
-        total: Int,
-    ) {
-        if (progressAction.isNullOrBlank()) return
-        sendBroadcast(
-            Intent(progressAction).apply {
-                setPackage(replyPackage)
-                addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-                putExtra(StateExportReceiver.EXTRA_REPLY_ID, replyId)
-                putExtra("app", getString(R.string.application_name))
-                putExtra("item", cat.id)
-                putExtra("text", "区分 $position/$total — ${cat.label}")
-                putExtra("current", position.toLong())
-                putExtra("total", total.toLong())
-                putExtra("unit", "区分")
-            },
-        )
     }
 
     private fun buildNotification(): Notification {

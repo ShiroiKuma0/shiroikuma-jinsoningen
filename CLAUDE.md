@@ -95,7 +95,7 @@ only. Upstream's third type, `alpha`, was removed in `v0.7.5`; don't be surprise
 | `jinsoningen/JinsoningenFonts.kt` | `.ttf`/`.otf` import into app storage + family/Typeface resolution |
 | `jinsoningen/JinsoningenBackup.kt` | the category ZIP. `writeZip(context, categories, out, onProgress, isCancelled)` is the ONE export implementation; atomic `.part`-then-rename on both destinations |
 | `jinsoningen/JinsoningenViewTheme.kt` | the house look for the LEGACY View screens — the attr→knob mapping, the tinting inflater, `paintTree`, `refreshTree`, `applyTypography` |
-| `jinsoningen/automation/` | the 保存復元 contract — `AutomationAuth` (token, switch default OFF), `StateExportReceiver` (exported, 3 actions), `StateExportService` (foreground `dataSync`) |
+| `jinsoningen/automation/` | the 保存復元 contract **v2** — `AutomationAuth` (switch default ON, token opt-in, both checks in `refuse()`), `StateExportReceiver` (exported, 3 actions) + `StateExportService` (foreground `dataSync`), and the data door: `AutomationProvider` (exported, `describe`/`export`/`import`/`cancel`) + `AutomationCallers` (exact name, uid, pinned cert) + `AutomationJobs` + `AutomationDataService` (foreground `specialUse`) |
 | `compose/jinsoningen/JinsoningenUiScreen.kt` | the 白い熊 人造人間 UI page, in kxkb's grammar |
 | `compose/jinsoningen/JinsoningenDialogs.kt` | RGBA colour picker with recent swatches, font picker (each font in its own glyphs), the Export/Import panel, the result dialog |
 | `compose/jinsoningen/JinsoningenAlertDialog.kt` | drop-in `AlertDialog` with the house yellow border |
@@ -195,6 +195,12 @@ On a knob change the UI state fires its listener, and `MainActivity` calls
   Re-read it before touching `jinsoningen/automation/` — every constraint there is hard-won
   (the receiver must not run the export, the reply must be a fresh broadcast, `items` absent means
   our default set, `current` is the position not the finished count, cancel must delete the `.part`).
+- **v2 (2026-09-04) added the data door and made the token opt-in.** `import` exists ONLY on the
+  provider and never gets a broadcast action — the receiver is exported with no permission, so an
+  import there would let any app on the phone wipe this one. The caller check is exact name + uid +
+  pinned certificate, **never a prefix**; the payload is a caller-supplied `ParcelFileDescriptor`,
+  `dup()`ed before it leaves `call()` and closed in a `finally`. A token sent to us while
+  `automation_require_token` is off is **ignored, never an error**.
 
 ## Architecture (upstream Droid-ify)
 
