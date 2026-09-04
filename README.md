@@ -8,11 +8,12 @@
 
 A fork of [Droid-ify](https://github.com/Droid-ify/client) with **major additions**: a full
 black-yellow theming page with live previews, imported fonts, a category backup with an automation
-contract, updates you can watch happen, and a Shizuku installer that prefers our own Shizuku.
+contract that can restore the app's data onto a wiped phone, updates you can watch happen, and a
+Shizuku installer that prefers our own Shizuku.
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.6+001`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.6+005`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
@@ -60,10 +61,21 @@ set), the newest backup found there shown the moment it opens, a bold **Select a
 checklist, and an ArcaneChat button bar — Cancel alone on the left, Import and Export grouped right,
 all fully round pills.
 
-It also implements the **保存復元 automation contract**, so 白い熊 自由作業盤 can back this app up
-headlessly as part of a batch: three token-gated actions on one exported receiver, the export run in
-a foreground service rather than the broadcast window, progress reported with real counts, and a
-cancel that deletes the partial file. The switch is off until you turn it on.
+It also implements the **保存復元 automation contract, v2**, in two halves.
+
+**The batch half** lets 白い熊 自由作業盤 back this app up headlessly: three actions on one exported
+receiver, the export run in a foreground service rather than the broadcast window, progress reported
+with real counts, and a cancel that deletes the partial file.
+
+**The data door** lets 白い熊 応用管理 back the app up *with its data* and put it back on a wiped
+phone — a `ContentProvider` that identifies its caller by exact package name, uid and a pinned
+signing certificate, and moves the archive through a file descriptor the caller opens. Restoring is
+possible **only** through that door, never by broadcast: an import overwrites the app's data, and the
+receiver above deliberately has no permission on it.
+
+Since v2 there is **nothing to turn on and nothing to paste** — the switch ships on and the
+authorization token is opt-in, because a pasted secret cannot survive the wipe this feature exists to
+recover from. Both switches, and the token when you ask for one, live in the Export / Import section.
 
 ---
 

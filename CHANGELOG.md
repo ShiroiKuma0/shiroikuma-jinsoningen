@@ -3,6 +3,96 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.6+005 — 2026-09-04
+
+Built on upstream **`v0.7.6`**, same base as `0.7.6+001`. No upstream change: this release is the
+fork's implementation of the **保存復元 automation contract v2**, which turns the headless export
+into something 白い熊 応用管理 can restore onto a wiped phone.
+
+### The gate opens, and the token becomes opt-in
+
+- **`automation_enabled` now defaults to ON, and a new `automation_require_token` defaults to OFF.**
+  v1 shipped the app closed: a caller needed 白い熊 to flip a switch and paste a 48-character secret.
+  A pasted secret cannot survive a wipe, and the case this family now exists to serve is restoring
+  apps *and their data* onto a clean phone where nothing has been configured. There is nothing to
+  turn on and nothing to paste any more.
+- **A token sent to this app while it is not asking for one is IGNORED, never refused.** Tokens live
+  in task arguments that outlive the setting they were pasted for; refusing them would turn "白い熊
+  turned a switch off" into "half the batch mysteriously fails".
+- **Both checks live in one function**, `AutomationAuth.refuse()`, returning either null or the exact
+  `ERROR:` line — so no receiver, provider or service can order them differently and let "automation
+  disabled" and "bad token" drift apart.
+- **The three gate writes are `commit()`, never `apply()`, because this gate fails OPEN.** With the
+  default flipped to true, a write that never reaches disk does not fall back to "off" — it falls
+  back to **ON**. 応用管理 force-stops an app with `SIGKILL` the instant it replies to an import,
+  which is exactly where a queued write is lost, and turning an app off is the action most likely to
+  be running near a force-stop. The token write is the worst of the three to lose: a copy already
+  pasted elsewhere silently stops matching.
+- The UI page's Export / Import section now carries three rows — the master switch, "Use
+  authorization token?", and the token itself, **shown only while it is being asked for**. A
+  48-character secret sitting under an off switch invites pasting it somewhere it will do nothing.
+
+### The data door — a provider, a verified caller, and a file descriptor
+
+- **A `ContentProvider` at `shiroikuma.jinsoningen.automation`**, exported with no permission,
+  answering `describe` / `export` / `import` / `cancel`. It exists because **a broadcast cannot tell
+  you who sent it** — v1's answer to that was the shared secret, and the secret is what a wipe
+  destroys — and because a caller must draw a list row per app *before* any export exists, which a
+  broadcast round trip is the wrong shape for.
+- **`import` exists only here and never gets a broadcast action.** An import overwrites this app's
+  data, and the receiver is exported with no permission — an import there would let any app on the
+  phone wipe any sister app.
+- **The caller is checked three ways**: an **exact package name** from a two-entry map, the **uid**
+  the kernel reports for it, and a **pinned SHA-256 of its signing certificate**. Never a prefix: a
+  package name is not a namespace anyone owns, so any sideloaded app may call itself
+  `shiroikuma.evil` — and since the caller supplies the destination, a prefix check would have been
+  strictly weaker than the token it replaced. The certificate pin closes the case that matters most
+  on a clean phone, where the absent caller's name is a name anyone can take.
+- **The payload moves through a `ParcelFileDescriptor` the caller opens** — not a path, not a URI.
+  The caller renames its staging directory on commit and encrypts and checksums per file it knows
+  about, so a file dropped in from outside would be renamed out from under it, sit in plaintext
+  inside an encrypted backup, and go unverified. The descriptor is `dup()`ed before it leaves the
+  binder call and closed in a `finally` on every path, including the one where the foreground start
+  is refused.
+- **A refusal is returned, never thrown** — an exception across a binder reaches the caller as a
+  `RuntimeException` carrying our stack trace.
+- **`describe` answers a header JSON outside the archive** — app id, version, `format`,
+  `min_format_readable`, `requires_launch_first: false`, and what the backup contains — so
+  compatibility is judged before megabytes are streamed into an app that would reject them. It reads
+  only `PackageManager` and an enum, so it never touches the DI graph.
+- **Manifest `<meta-data>`** (`contract=2`, `format=1`, `min_format=1`) lets a caller decide whether
+  this app is backupable **without waking it**, which matters because a frozen app cannot be asked
+  anything. `<queries>` names both callers: without it the reply's `setPackage()` fails **silently**
+  on Android 11+, and reading a caller's certificate needs package visibility too.
+
+### Export and import, off the broadcast window
+
+- The work runs in a **`specialUse` foreground service** with a partial wakelock, streaming the ZIP
+  straight into the caller's descriptor and counting bytes as it writes — the caller owns the file
+  and it may be an anonymous pipe that could never be stat'ed.
+- **`startForeground` now precedes every early return**, including the ones that turn straight round
+  and stop. Once `startForegroundService` has been called the platform requires the notification
+  whatever the service then decides, and enforces it by killing the process — so a caller retrying
+  with a stale job id was **fatal to the app it was retrying against**.
+- **One `handedOff` flag, not a guard per failure**: the descriptor is drained from the handover map
+  and closed unless the coroutine took it, because a refused foreground start is only one of several
+  ways to leave that window.
+- **Import spools the descriptor to a cache file rather than a byte array**, deleted in a `finally`.
+  Reading the whole archive before touching anything is the guarantee — a partial read would import
+  half an archive — but an archive of ours is as large as the imported fonts inside it, so the bound
+  belongs on disk. `JinsoningenBackup` gained stream-**factory** forms of `categoriesIn` and
+  `restore`: the ZIP is read twice, once to see what it carries and once to apply it, so a spooled
+  import must reopen rather than rewind a descriptor it does not own.
+- **The automation import writes the UI knobs synchronously.** The force-stop that protects an import
+  would equally discard an `apply()` still in flight, and the `ui` category is the entire house look
+  — the restore would have reported success and come back with none of it. The Export / Import panel
+  keeps the async write on purpose: it restores on the **main** dispatcher, where a blocking write
+  does not belong, and its "Restart now" is an orderly shutdown that flushes the queue. Every other
+  category was already durable on return.
+- **Progress reaches the data door too**, with the job id as the correlation id, through **one**
+  sender shared with the batch path — two copies is how the category `item` extra ends up on one path
+  and not the other.
+
 ## 0.7.6+001 — 2026-08-24
 
 Built on upstream **`v0.7.6`** (the previous base was `v0.7.5`). A sync release, but not a silent
