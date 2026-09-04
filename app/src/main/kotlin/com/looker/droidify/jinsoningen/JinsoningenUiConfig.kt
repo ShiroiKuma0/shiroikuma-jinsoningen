@@ -178,8 +178,15 @@ class JinsoningenUiConfig(context: Context) {
     }
 
     /** Restores a [toJson] snapshot. Unknown keys are ignored, so old backups still import. */
-    fun fromJson(json: JSONObject) {
-        prefs.edit {
+    /**
+     * @param commit write **synchronously**. The default `apply()` is right for the Export/Import
+     *   panel, but 応用管理 `SIGKILL`s this process the instant an automation import replies `OK` —
+     *   that kill is what stops a running process writing its cached prefs back over the restore,
+     *   and it would also discard an `apply()` still in flight. The whole house look lives in this
+     *   one file, so the restore would report success over nothing (自由作業盤, 2026-09-04).
+     */
+    fun fromJson(json: JSONObject, commit: Boolean = false) {
+        prefs.edit(commit = commit) {
             json.keys().forEach { key ->
                 when (val value = json.get(key)) {
                     is Int -> putInt(key, value)
