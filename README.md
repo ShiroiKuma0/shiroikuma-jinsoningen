@@ -13,7 +13,7 @@ Shizuku installer that prefers our own Shizuku.
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.6+008`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.7+001`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
@@ -109,6 +109,10 @@ narrates its own share of the work**: queued, connecting, downloading against a 
 with the byte count beside it, waiting on the installer, installing. When a package goes idle the
 row gets its summary back, so a list that finishes while you are looking at it simply goes quiet.
 
+Upstream has since moved the button's own plumbing around — the tap travels through `TabsFragment`,
+and the label and icon come from the layout — so the fork now supplies only what upstream still has
+no notion of: the working state, and the per-row progress.
+
 ---
 
 ## 🔌 Shizuku, ours first
@@ -135,13 +139,13 @@ differs. Renaming it would turn every upstream rebase into a mass conflict for n
 
 ## Versioning and branches
 
-`versionName` is upstream's version plus our build counter — `0.7.6+001` — and `versionCode` is
-upstream's code times 10 000 plus that counter (`760 × 10000 + 1 = 7600001`). The counter bumps on
+`versionName` is upstream's version plus our build counter — `0.7.7+001` — and `versionCode` is
+upstream's code times 10 000 plus that counter (`770 × 10000 + 1 = 7700001`). The counter bumps on
 every build and resets to `001` on every upstream sync, so `+N` always reads as "our Nth build on
 this upstream base".
 
 - **`custom`** — all our work; the default branch.
-- **`main`** — mirrors the upstream **release tag** we are based on (currently `v0.7.6`).
+- **`main`** — mirrors the upstream **release tag** we are based on (currently `v0.7.7`).
 
 Upstream is tracked by release tag rather than by branch tip, so every base is a state upstream
 itself called finished.
