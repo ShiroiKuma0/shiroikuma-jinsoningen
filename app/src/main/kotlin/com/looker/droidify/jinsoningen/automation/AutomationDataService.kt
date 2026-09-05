@@ -72,16 +72,44 @@ class AutomationDataService : Service() {
      * and closed here unless the coroutine took it, tracked by a single `handedOff` flag rather
      * than a guard per failure: `startForeground` throwing is only one of several ways to leave the
      * window between the drain and the launch.
+     *
+     * **A refused `startForeground` still answers.** [AutomationProvider] has already returned
+     * `OK:<job_id>` by the time this runs, so dying here would leave the caller waiting on a job
+     * that no longer exists — the silent-no-export failure one layer down (速記, 2026-09-04). The
+     * reply address is read before the call that can fail, so there is always something to answer
+     * with.
      */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val importing = intent?.getBooleanExtra(EXTRA_IMPORTING, false) ?: false
         val jobId = intent?.getStringExtra(EXTRA_JOB)
+        val replyAction = intent?.getStringExtra(AutomationProvider.KEY_REPLY_ACTION)
+        val replyPackage = intent?.getStringExtra(AutomationProvider.KEY_REPLY_PACKAGE)
         val fd = jobId?.let { HANDOVER.remove(it) }
         var handedOff = false
         try {
             // MUST happen inside 5 s of the service starting, and MUST happen even on the paths
-            // that turn straight round and stop.
-            startForeground(NOTIFICATION_ID, notification(importing))
+            // that turn straight round and stop — but it can be REFUSED, exactly as the receiver's
+            // startForegroundService can, so it is guarded and answered rather than fatal.
+            try {
+                startForeground(NOTIFICATION_ID, notification(importing))
+            } catch (exception: Exception) {
+                if (jobId != null && !replyAction.isNullOrEmpty() && !replyPackage.isNullOrEmpty()) {
+                    AutomationJobs.finish(jobId)
+                    sendBroadcast(
+                        Intent(replyAction).apply {
+                            setPackage(replyPackage)
+                            addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                            putExtra(AutomationProvider.KEY_JOB_ID, jobId)
+                            putExtra(
+                                AutomationProvider.KEY_RESULT,
+                                StateExportReceiver.wireError(applicationContext, exception),
+                            )
+                        },
+                    )
+                }
+                stopSelf(startId)
+                return START_NOT_STICKY
+            }
             if (jobId == null || fd == null) return stop(startId)
             handedOff = dispatch(intent, startId, jobId, fd, importing)
             return START_NOT_STICKY
