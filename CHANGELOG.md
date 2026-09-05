@@ -3,6 +3,57 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.6+008 — 2026-09-05
+
+Built on upstream **`v0.7.6`**, same base as `0.7.6+005`. No upstream change and no new feature:
+this release fixes a crash in the automation path that only ever fired when nobody was watching.
+
+### A refused foreground start no longer kills the app
+
+- **A broadcast is a background start on API 31+.** Without a foreground-start allowance —
+  which comes from *recent interaction* — `startForegroundService` throws
+  `ForegroundServiceStartNotAllowedException`, and an exception escaping `onReceive` kills the
+  process. Opening the app and running a backup by hand always worked; the unattended batch, and a
+  restore onto a clean phone, crashed. **The failure was inversely correlated with how closely
+  anyone was watching**, which is why it survived a rollout.
+- **There are four such sites, not one**: the receiver's `startForegroundService`, the §1 service's
+  own `startForeground`, the provider's start of the data service, and the §2a service's own
+  `startForeground`. **Each service is its own site** — guarding the thing that starts it does not
+  cover it.
+- The §2a service's was the worst of them. It already had a `try`/`finally` that closed the
+  descriptor, which **reads as a guard and is not one**, and by the time it runs the provider has
+  already answered `OK:<job_id>` — so dying there left the caller waiting on a job that no longer
+  existed.
+- **Catching alone would not have been enough.** It converts the crash into a *silent* no-export:
+  the caller waits out its whole timeout and reports "no response", which is indistinguishable from
+  an app that never implemented the contract. Every site now replies.
+- Each service reads its reply address **before** the call that can fail, and still goes foreground
+  **before any early return** — so the rule that the platform requires the notification and the rule
+  that a refusal must have somewhere to answer both hold at once.
+
+### The refusal says whether it can be repaired
+
+- The reply is the keyed `ERROR:no-foreground-start` **only when a battery-optimisation exemption
+  would genuinely fix it** — the platform's own refusal *and* `!isIgnoringBatteryOptimizations`.
+  A caller keys on that string to offer a 「電池最適化を除外」 button.
+- **A refused foreground start is not single-cause** the way a missing All-Files grant is: it can
+  also be a missing `FOREGROUND_SERVICE` permission, or — on EMUI — アプリ起動管理 set to 自動管理,
+  which no app can change for itself. Emitting the key unconditionally would earn a button that
+  cannot fix the fault, and a row offering a button that changes nothing is worse than one naming
+  the exception. So the condition is a predicate the code evaluates, not a rule to remember.
+- Every other failure keeps a descriptive line, carrying the exception's class name when its message
+  is null (`ERROR:null` reads as our bug rather than the platform's), with newlines flattened —
+  `result` is **one line**, and `LIST_CATEGORIES` answers are newline-delimited, so an unflattened
+  platform message would corrupt a caller's parse rather than merely read badly.
+
+### Not verified end to end
+
+Both batch runs against this code returned `ERROR:no-storage-access` in about 3.5 seconds with no
+crashes — the app refuses earlier, because it has not been granted All-Files-Access and the contract
+requires a declaring app to answer with that key rather than quietly writing somewhere else. So the
+four guards ship **neither verified nor contradicted**: nothing in those runs reached them. Granting
+the storage permission and retrying is what will exercise them.
+
 ## 0.7.6+005 — 2026-09-04
 
 Built on upstream **`v0.7.6`**, same base as `0.7.6+001`. No upstream change: this release is the
