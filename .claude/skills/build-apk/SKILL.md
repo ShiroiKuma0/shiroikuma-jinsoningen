@@ -34,7 +34,8 @@ commit/push still waits for 白い熊's explicit **"Push"**.
    - `versionCode` for this build = `<upstream versionCode> * 10000 + BUILD_NUMBER`
      (e.g. `740 * 10000 + 7 = 7400007`).
 
-2. **Build** (Gradle runs on JDK 21; the build's own toolchain is JetBrains JDK 17, auto-provisioned):
+2. **Build** (Gradle runs on JDK 21, and since upstream `v0.7.7` there is no toolchain declaration,
+   so JDK 21 is also what compiles the code):
    ```bash
    JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ANDROID_HOME=/home/shiroikuma/android-sdk ./gradlew buildFork < /dev/null
    ```
@@ -46,8 +47,8 @@ commit/push still waits for 白い熊's explicit **"Push"**.
    - If it fails with **`SDK location not found`**, create the gitignored `local.properties` at the
      repo root with `sdk.dir=/home/shiroikuma/android-sdk`.
    - If the APK comes out unsigned, `keystore.properties` is missing from the repo root — see below.
-   - **The first build after a fresh clone is slow**: it downloads the Gradle 9.6.1 distribution and
-     the JetBrains JDK 17 toolchain (via the `foojay-resolver` plugin), then runs a full R8 pass. Run
+   - **The first build after a fresh clone is slow**: it downloads the Gradle 9.7.1 distribution,
+     then runs a full R8 pass. Run
      it with `run_in_background` if it may exceed the foreground timeout; later builds are much faster
      with a warm configuration cache.
    - **`release` is the build type we ship.** `alpha` (`.alpha` suffix) and `debug` (`.debug` suffix)
@@ -78,7 +79,7 @@ still succeeds but the APK is **unsigned** and will not install.
 
 ## Notes / invariants
 
-- **Toolchain:** Gradle wrapper 9.6.1 on JDK 21; the build declares a JetBrains JDK 17 toolchain;
+- **Toolchain:** Gradle wrapper 9.7.1 on JDK 21, which is also what compiles (no toolchain block);
   Android SDK at `~/android-sdk`; `compileSdk 36`, `minSdk 23`; configuration cache on.
 - **Minified release** — upstream ships `isMinifyEnabled = true` + `isShrinkResources = true`. If a
   Compose/Hilt/Room class disappears at runtime, the fix is a keep rule in `app/proguard.pro`, not

@@ -41,7 +41,7 @@ apply here — we use the plain `+NNN` versionName.
 | App label | `白い熊 人造人間` | `application_name` in `app/src/main/res/values/strings.xml` |
 | App icon | black-yellow traced line-art (yellow `#FFFF00` on black) | `design/…icon.svg` → `drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/`, `ic_launcher-playstore.png` |
 | Version tail | `versionName = "<upstream>+NNN"`, `versionCode = <upstream code>*10000+N` | `app/build.gradle.kts` fork blocks |
-| `BuildConfig.VERSION_NAME` | our fork version (`0.7.6+001`), not upstream's `v0.7.6` | `app/build.gradle.kts` → `buildTypes { all { } }` |
+| `BuildConfig.VERSION_NAME` | our fork version (`0.7.7+001`), not upstream's `v0.7.7` | `app/build.gradle.kts` → `buildTypes { all { } }` |
 | Signing | gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-jinsoningen.jks` (alias `jinsoningen`) | `app/build.gradle.kts` |
 | House theme | `Theme.Main.Jinsoningen` for every theme choice except Light | `values/jinsoningen_theme.xml`, `datastore/extension/Preferences.kt` |
 | Toolbar cog | tap → Settings, long-press → the UI page | `ui/tabsFragment/TabsFragment.kt`, `drawable/ic_settings.xml`, `values/ids.xml` |
@@ -49,11 +49,11 @@ apply here — we use the plain `+NNN` versionName.
 
 ### Versioning & APK naming
 
-- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.6"`
-  and `versionCode = 760` literals. Our fork lines sit **immediately after** them and multiply/append,
+- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.7"`
+  and `versionCode = 770` literals. Our fork lines sit **immediately after** them and multiply/append,
   so a rebase brings the new base in automatically. **Never hand-edit those two literals.**
 - `BUILD_NUMBER` (in `gradle.properties`) is our per-build `N`:
-  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.6+001`),
+  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.7+001`),
   `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7600001`).
   The `buildFork` task bumps `BUILD_NUMBER` after every successful build; `/upstream-new-version`
   resets it to `1` on every sync, so `+N` always reads as "our Nth build on this upstream base".
@@ -78,10 +78,12 @@ only. Upstream's third type, `alpha`, was removed in `v0.7.5`; don't be surprise
 ### Toolchain
 
 - Gradle **runs** on JDK 21 (`/usr/lib/jvm/java-21-openjdk-amd64`); the host default `java` is older,
-  so always set `JAVA_HOME`. The build itself declares a **JetBrains JDK 17 toolchain**, auto-provisioned
-  by the `foojay-resolver` plugin in `settings.gradle.kts` — the first build downloads it.
+  so always set `JAVA_HOME`. **There is no toolchain declaration any more** — upstream deleted the
+  `java { toolchain { 17, JETBRAINS } }` block and the `foojay-resolver` plugin in `v0.7.7`, so the
+  build simply compiles on whatever JDK Gradle runs on. `JAVA_HOME` is therefore no longer merely how
+  Gradle starts; it is what the code is compiled with. `compileOptions` still targets Java 17.
 - Android SDK at `~/android-sdk` via the gitignored `local.properties`; `compileSdk 36`, `minSdk 23`.
-  Gradle wrapper 9.6.1, configuration cache **on**.
+  Gradle wrapper 9.7.1, configuration cache **on**.
 - Release is minified + resource-shrunk (`isMinifyEnabled` / `isShrinkResources`) — that is upstream's
   setting; leave it. If a Compose/Hilt/Room class disappears at runtime, the fix is a keep rule in
   `app/proguard.pro`, not turning minification off.
@@ -147,6 +149,17 @@ On a knob change the UI state fires its listener, and `MainActivity` calls
   shares none of that hierarchy — must precede `ImageView`, which matches it and would consume it
   while re-tinting only the icon, leaving Material's stock background. Adding a branch means
   choosing its position, not appending it.
+- **The Update-all button is upstream's again; only its *state* is ours** (v0.7.7). The FAB in
+  `recycler_view_with_fab.xml` is `update_all`, not `scroll_up`, and carries its label, icon and
+  initial visibility in the XML. The tap goes `startUpdateAll()` →
+  `(parentFragment as? TabsFragment)?.updateAll()` — `AppListViewModel` no longer holds a
+  `syncConnection`. What is still ours on that class is the download/install progress
+  (`installStates`, `downloadState`, `downloadConnection`), which has nothing to do with syncing.
+- **The fast scrollbar does not follow the knobs.** Upstream's `RecyclerFastScroller` (v0.7.7) reads
+  `android:fastScrollThumbDrawable` from the theme, and that drawable resolves `?attr/colorPrimary` /
+  `?attr/colorOutline` at inflation. `Theme.Main.Jinsoningen` supplies the house yellow, so it looks
+  right — but it is **static**, outside `paintTree` and outside `attrColor`, so a live colour change
+  reaches it only on restart. Making it live means painting the drawable, not adding a `paintTree` arm.
 - **`JinsoningenUiState` writers are `updateX()`, not `setX()`** — the properties' generated setters
   already own the `setX` JVM signature, and a clash is a compile error.
 - **The UI state is a process-wide singleton** (`JinsoningenUi.get`), because the legacy Fragment
@@ -268,6 +281,9 @@ every upstream sync, so the base changes down this table.
 | `0.7.4+011` | `v0.7.4` | "Update all" answers the tap, and every list row shows its own download/install progress |
 | `0.7.5+001` | `v0.7.5` | sync release, no fork feature change — upstream's Ktor→OkHttp migration (our User-Agent re-landed in the new interceptor), installer reliability, status codes in sync-failure notifications, the Compose icons library dropped (our bordered dialogs kept) |
 | `0.7.6+001` | `v0.7.6` | upstream's QR-code repository scanner and repo icons, plus two fork fixes on top: upstream's scan-success path was a no-op, and its new plain FAB needed a `paintTree` branch to take the house look |
+| `0.7.6+005` | `v0.7.6` | the 保存復元 automation contract v2 — the data door (`AutomationProvider` import), the switch on by default and the token opt-in |
+| `0.7.6+008` | `v0.7.6` | every foreground-service start guarded, and a refused one answered instead of crashing the process |
+| `0.7.7+001` | `v0.7.7` | sync release, no fork feature change — upstream's scrollbar replacing the scroll-up FAB, the home-screen memory leak, `{{source_code}}` for custom buttons, the RTL screenshot fix; our "Update all" work ported onto upstream's rewritten routing (the tap now goes through `TabsFragment`) |
 
 ## Commit convention — no Claude attribution
 

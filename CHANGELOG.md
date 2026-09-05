@@ -3,6 +3,69 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.7+001 — 2026-09-05
+
+Built on upstream **`v0.7.7`** (the previous base was `v0.7.6`). A sync release with no new fork
+feature — but not a quiet one either: upstream rewrote the exact code the fork's "Update all" work
+sat on, so that patch had to be ported rather than replayed.
+
+### What upstream brings
+
+- **A scrollbar replaces the scroll-up FAB.** A new hand-written `RecyclerFastScroller` draws a
+  draggable thumb on every list, and the floating "scroll to top" button is deleted. The FAB slot in
+  the layout is now the Update-all button and nothing else — it was renamed `scroll_up` → `update_all`
+  and carries its label, icon and initial visibility in the XML rather than being dressed at runtime.
+- **The sync-service binding leaves the app-list fragments.** `AppListViewModel` loses its
+  `syncConnection` and its `updateAll()`; the tap now travels to a new `TabsFragment.updateAll()`
+  through `parentFragment`. One binder for the three tabs instead of one per tab.
+- **A memory leak on the home screen is fixed.** `TabsFragment` registered a `ViewTreeObserver`
+  global-layout listener that captured the fragment and was never removed, so every visit to the home
+  screen leaked one. It is now an `addOnLayoutChangeListener`, which dies with the view.
+- **Custom buttons gain `{{source_code}}`**, so a button's URL template can interpolate the app's
+  source-code link. The editor also loses its show-more toggle — the template chips are now a single
+  horizontally scrolling row — and drops the hand-placed spacers for a spaced column.
+- **Screenshots are no longer reversed in RTL locales**, and `Product.Screenshot.url()` stops
+  returning a tinted placeholder for a video: it returns the real path and no longer needs a
+  `Context`.
+- **`UnarchiveWorker` finishes.** It waited on `downloadState.last()` — a flow that never completes —
+  so an unarchive job hung forever; it now waits for `first { it isComplete packageName }`.
+- `getParcelable*` compat helpers replace the deprecated calls, and the transparent status and
+  navigation bars are gated to Android 11–14 (Android 15 does it itself).
+- Build housekeeping: the JVM toolchain pinning is removed along with the `foojay-resolver` plugin,
+  the Gradle wrapper moves 9.6.1 → 9.7.1, and LeakCanary is enabled for `debug`.
+- Weblate updates across fifteen locales, with six dead ones deleted (Sinhala, Javanese, Lojban, both
+  Kurdish variants, Tamazight). Japanese gains the QR-scanner strings from the previous cycle.
+- Repository governance that never reaches this fork: a code of conduct, a rewritten contributing
+  guide, redesigned issue templates, and a release PAT in upstream's own CI.
+
+### What the fork had to port
+
+- **The per-row progress plumbing survives untouched.** `installStates`, `downloadState` and
+  `downloadConnection` are about downloads and installs, not about syncing, so they stay on
+  `AppListViewModel` even though upstream stripped that class of its service connection.
+- **The routing moved to upstream's.** `startUpdateAll()` now calls
+  `(parentFragment as? TabsFragment)?.updateAll()` instead of the ViewModel method upstream deleted,
+  and still arms the eight-second hold that makes the button say "Updating…" before the first
+  download reports in.
+- **The patch shrank.** With the label, icon and alpha now set in the layout, the fork's runtime code
+  sets only what it actually varies — the button's text and its enabled state — and `updateFabState()`
+  reads `_binding.updateAll` after the rename. Following upstream's structure here rather than forcing
+  the old diff means less to conflict on the next sync.
+
+### Packaging
+
+- `versionName` `0.7.7+001`, `versionCode` `7700001` (`770 × 10000 + 1`) — the build counter resets to
+  `001` on every upstream sync.
+- Built on Gradle 9.7.1. With upstream's toolchain block gone the build no longer provisions a
+  JetBrains JDK 17; it compiles on whatever JDK Gradle runs on, which here is JDK 21.
+
+### Known limitation
+
+The new scrollbar's thumb is a drawable resolving `?attr/colorPrimary` and `?attr/colorOutline`
+against the theme, so it inherits the house yellow from `Theme.Main.Jinsoningen` — but it reads the
+**static** theme, not the live UI-page knobs, so a colour change does not reach it until the app
+restarts. Every other legacy surface repaints immediately.
+
 ## 0.7.6+008 — 2026-09-05
 
 Built on upstream **`v0.7.6`**, same base as `0.7.6+005`. No upstream change and no new feature:
