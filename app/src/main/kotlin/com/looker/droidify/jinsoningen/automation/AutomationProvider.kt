@@ -139,10 +139,14 @@ class AutomationProvider : ContentProvider() {
             AutomationDataService.start(ctx, jobId, dup, importing, extras)
             ok("OK:$jobId")
         }.getOrElse { failure ->
+            // The refusal is answered as the RETURN VALUE of call(), so no `OK:<job_id>` is ever
+            // handed out for a job that will not run — a caller left holding an id for a dead job
+            // is the silent-no-export failure one layer down (速記, 2026-09-04).
             AutomationJobs.finish(jobId)
             AutomationDataService.discard(jobId)
             runCatching { dup.close() }
-            fail("ERROR:${failure.message ?: failure.javaClass.simpleName}")
+            val reason = failure as? Exception ?: RuntimeException(failure)
+            fail(StateExportReceiver.wireError(ctx, reason))
         }
     }
 

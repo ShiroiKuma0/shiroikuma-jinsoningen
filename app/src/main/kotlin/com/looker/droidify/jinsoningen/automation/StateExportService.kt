@@ -42,18 +42,47 @@ class StateExportService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * ## Why the extras are read before going foreground
+     *
+     * **`startForeground` can be refused too.** The receiver's `startForegroundService` is the
+     * famous site, but this call fails for the same reasons, and a refusal *above* the extras read
+     * has no reply address in scope — so it dies silently and the caller waits out its whole
+     * timeout (速記, 2026-09-04). Reading three extras cannot throw and costs nothing against the
+     * 5 s window, so the address is in hand before anything that can fail.
+     *
+     * ## Why nothing returns before it either
+     *
+     * Once `startForegroundService` has been called the platform *requires* the notification, and
+     * enforces it by killing the process. So the malformed-intent paths below go foreground first
+     * and then stop, rather than returning early.
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // MUST happen inside 5 s of the service starting, or the system kills us for it.
-        startForeground(NOTIFICATION_ID, buildNotification())
+        val replyAction = intent?.getStringExtra(StateExportReceiver.EXTRA_REPLY_ACTION)
+        val replyPackage = intent?.getStringExtra(StateExportReceiver.EXTRA_REPLY_PACKAGE)
+        val replyId = intent?.getStringExtra(StateExportReceiver.EXTRA_REPLY_ID)
 
-        val request = intent ?: run {
+        // MUST happen inside 5 s of the service starting, or the system kills us for it — and
+        // guarded, because a refusal here is exactly as possible as one at the receiver.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (exception: Exception) {
+            if (replyAction != null && replyPackage != null && replyId != null) {
+                StateExportReceiver.reply(
+                    applicationContext,
+                    replyAction,
+                    replyPackage,
+                    replyId,
+                    StateExportReceiver.wireError(applicationContext, exception),
+                )
+            }
             stopSelf()
             return START_NOT_STICKY
         }
-        val replyAction = request.getStringExtra(StateExportReceiver.EXTRA_REPLY_ACTION)
-        val replyPackage = request.getStringExtra(StateExportReceiver.EXTRA_REPLY_PACKAGE)
-        val replyId = request.getStringExtra(StateExportReceiver.EXTRA_REPLY_ID)
-        if (replyAction == null || replyPackage == null || replyId == null) {
+
+        val request = intent
+        if (request == null || replyAction == null || replyPackage == null || replyId == null) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }

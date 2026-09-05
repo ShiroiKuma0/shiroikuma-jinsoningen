@@ -5,10 +5,14 @@
 
 package com.looker.droidify.jinsoningen.automation
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import com.looker.droidify.jinsoningen.JinsoningenBackup
 
 /**
@@ -67,17 +71,36 @@ class StateExportReceiver : BroadcastReceiver() {
                     return
                 }
 
-                ContextCompat.startForegroundService(
-                    app,
-                    Intent(app, StateExportService::class.java).apply {
-                        putExtra(EXTRA_PATH, intent.getStringExtra(EXTRA_PATH))
-                        putExtra(EXTRA_ITEMS, items)
-                        putExtra(EXTRA_PROGRESS_ACTION, intent.getStringExtra(EXTRA_PROGRESS_ACTION))
-                        putExtra(EXTRA_REPLY_ACTION, replyAction)
-                        putExtra(EXTRA_REPLY_PACKAGE, replyPackage)
-                        putExtra(EXTRA_REPLY_ID, replyId)
-                    },
-                )
+                // A broadcast is a BACKGROUND start on API 31+. Without a foreground-start
+                // allowance — which comes from recent interaction — this throws
+                // ForegroundServiceStartNotAllowedException, and an exception escaping onReceive
+                // kills the process. Open the app and run a backup by hand and it always works;
+                // leave it cold and run the unattended batch, or restore onto a clean phone, and it
+                // throws. The failure is inversely correlated with how closely anyone is watching,
+                // which is why it survived the rollout (天気, 2026-09-04).
+                //
+                // Catching alone would only convert the crash into a SILENT no-export: the caller
+                // waits out its whole timeout and reports "no response", indistinguishable from an
+                // app that never implemented the contract. The ERROR: reply is what makes it
+                // diagnosable, and it is rendered straight into the caller's failure dialog.
+                try {
+                    ContextCompat.startForegroundService(
+                        app,
+                        Intent(app, StateExportService::class.java).apply {
+                            putExtra(EXTRA_PATH, intent.getStringExtra(EXTRA_PATH))
+                            putExtra(EXTRA_ITEMS, items)
+                            putExtra(
+                                EXTRA_PROGRESS_ACTION,
+                                intent.getStringExtra(EXTRA_PROGRESS_ACTION),
+                            )
+                            putExtra(EXTRA_REPLY_ACTION, replyAction)
+                            putExtra(EXTRA_REPLY_PACKAGE, replyPackage)
+                            putExtra(EXTRA_REPLY_ID, replyId)
+                        },
+                    )
+                } catch (exception: Exception) {
+                    reply(app, replyAction, replyPackage, replyId, wireError(app, exception))
+                }
             }
 
             "${app.packageName}$ACTION_CANCEL_EXPORT" -> {
@@ -99,6 +122,45 @@ class StateExportReceiver : BroadcastReceiver() {
         }
 
     companion object {
+        /**
+         * A failed start, turned into the one line the wire format carries.
+         *
+         * Returns the **keyed** `ERROR:no-foreground-start` only when a battery-optimisation exemption
+         * would actually fix it — see [exemptionWouldFix]. Everything else keeps a descriptive line,
+         * because the caller draws its 「電池最適化を除外」 button from the key alone.
+         *
+         * `result` is **one line** — `LIST_CATEGORIES` answers are newline-delimited, so a message with
+         * a newline in it would corrupt a caller's parse rather than merely read badly. And the message
+         * can be null, where the class name at least names the failure instead of saying `ERROR:null`.
+         */
+        fun wireError(context: Context, exception: Exception): String {
+            if (exemptionWouldFix(context, exception)) return "ERROR:no-foreground-start"
+            val detail = exception.message?.takeIf { it.isNotBlank() }
+                ?: exception.javaClass.simpleName
+            return "ERROR:" + detail.replace('\n', ' ').replace('\r', ' ').trim()
+        }
+
+        /**
+         * Whether the exemption the caller's button grants is genuinely the repair for this failure.
+         *
+         * **A refused foreground start is not single-cause the way a missing All-Files grant is**
+         * (handyrss, 2026-09-04). It can also be a missing `FOREGROUND_SERVICE` permission, or — on
+         * EMUI — アプリ起動管理 set to 自動管理, which **no app can change for itself**. So the key is
+         * earned, not assumed: the easy implementation (catch anything, always emit the key) is exactly
+         * the one that manufactures a button which cannot fix the fault, and a row offering a button
+         * that changes nothing is worse than a row naming the exception.
+         *
+         * Two conditions, and the second is the one that does the work: it must be the platform's own
+         * refusal, **and** this app must not already hold the exemption. If we are already exempt and
+         * the start was still refused, the exemption is demonstrably not the fix.
+         */
+        private fun exemptionWouldFix(context: Context, exception: Exception): Boolean {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+            if (exception !is ForegroundServiceStartNotAllowedException) return false
+            val power = context.getSystemService<PowerManager>() ?: return false
+            return !power.isIgnoringBatteryOptimizations(context.packageName)
+        }
+
         const val ACTION_EXPORT_STATE = ".action.EXPORT_STATE"
         const val ACTION_LIST_CATEGORIES = ".action.LIST_CATEGORIES"
         const val ACTION_CANCEL_EXPORT = ".action.CANCEL_EXPORT"
