@@ -13,7 +13,7 @@ Shizuku installer that prefers our own Shizuku.
 
 Installs **side-by-side** with Droid-ify (app id `shiroikuma.jinsoningen`).
 
-**📥 Latest release: [`0.7.6+005`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
+**📥 Latest release: [`0.7.6+008`](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-jinsoningen/releases)
 
 </div>
 
