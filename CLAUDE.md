@@ -41,7 +41,7 @@ apply here — we use the plain `+NNN` versionName.
 | App label | `白い熊 人造人間` | `application_name` in `app/src/main/res/values/strings.xml` |
 | App icon | black-yellow traced line-art (yellow `#FFFF00` on black) | `design/…icon.svg` → `drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `values/ic_launcher_background.xml`, `mipmap-*/`, `ic_launcher-playstore.png` |
 | Version tail | `versionName = "<upstream>+NNN"`, `versionCode = <upstream code>*10000+N` | `app/build.gradle.kts` fork blocks |
-| `BuildConfig.VERSION_NAME` | our fork version (`0.7.7+001`), not upstream's `v0.7.7` | `app/build.gradle.kts` → `buildTypes { all { } }` |
+| `BuildConfig.VERSION_NAME` | our fork version (`0.7.8+001`) — AGP generates it from `defaultConfig.versionName`, so no `buildConfigField` of our own since `v0.7.8` | `app/build.gradle.kts` → `defaultConfig`; read by `di/NetworkModule.kt` |
 | Signing | gitignored `keystore.properties` → `~/.android-keystores/shiroikuma-jinsoningen.jks` (alias `jinsoningen`) | `app/build.gradle.kts` |
 | House theme | `Theme.Main.Jinsoningen` for every theme choice except Light | `values/jinsoningen_theme.xml`, `datastore/extension/Preferences.kt` |
 | Toolbar cog | tap → Settings, long-press → the UI page | `ui/tabsFragment/TabsFragment.kt`, `drawable/ic_settings.xml`, `values/ids.xml` |
@@ -49,12 +49,15 @@ apply here — we use the plain `+NNN` versionName.
 
 ### Versioning & APK naming
 
-- The upstream base lives in `app/build.gradle.kts` as upstream's own `val latestVersionName = "0.7.7"`
-  and `versionCode = 770` literals. Our fork lines sit **immediately after** them and multiply/append,
-  so a rebase brings the new base in automatically. **Never hand-edit those two literals.**
+- The upstream base lives in `app/build.gradle.kts` as upstream's own `versionName = "0.7.8"` and
+  `versionCode = 780` literals in `defaultConfig` (a plain literal since `v0.7.8`; before that a
+  `val latestVersionName` above `android { }`). Our fork lines sit **immediately after** them and
+  multiply/append, so a rebase brings the new base in automatically. **Never hand-edit those two
+  literals.** The Settings version row reads the installed package's `versionName` (upstream, `v0.7.8`),
+  which is ours too.
 - `BUILD_NUMBER` (in `gradle.properties`) is our per-build `N`:
-  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.7+001`),
-  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7600001`).
+  `versionName = "<upstream name>+<N zero-padded to 3>"` (e.g. `0.7.8+001`),
+  `versionCode = <upstream code> * 10000 + N` (plain integer, e.g. `7800001`).
   The `buildFork` task bumps `BUILD_NUMBER` after every successful build; `/upstream-new-version`
   resets it to `1` on every sync, so `+N` always reads as "our Nth build on this upstream base".
 - APK: `shiroikuma-jinsoningen_<versionName>.apk`, copied to `~/tmp/`. **No ABI suffix** — the app has
@@ -82,8 +85,9 @@ only. Upstream's third type, `alpha`, was removed in `v0.7.5`; don't be surprise
   `java { toolchain { 17, JETBRAINS } }` block and the `foojay-resolver` plugin in `v0.7.7`, so the
   build simply compiles on whatever JDK Gradle runs on. `JAVA_HOME` is therefore no longer merely how
   Gradle starts; it is what the code is compiled with. `compileOptions` still targets Java 17.
-- Android SDK at `~/android-sdk` via the gitignored `local.properties`; `compileSdk 36`, `minSdk 23`.
-  Gradle wrapper 9.7.1, configuration cache **on**.
+- Android SDK at `~/android-sdk` via the gitignored `local.properties`; `compileSdk 37.1`
+  (`release(37) { minorApiLevel = 1 }`, `v0.7.8`), `minSdk 23`. Gradle wrapper 9.7.1, configuration
+  cache **on**.
 - Release is minified + resource-shrunk (`isMinifyEnabled` / `isShrinkResources`) — that is upstream's
   setting; leave it. If a Compose/Hilt/Room class disappears at runtime, the fix is a keep rule in
   `app/proguard.pro`, not turning minification off.
@@ -129,6 +133,12 @@ On a knob change the UI state fires its listener, and `MainActivity` calls
 - **`MainActivity.setTheme` runs AFTER the manifest theme.** Styling `MainTheme` in
   `base_theme.xml` reaches nothing on the main screen — upstream re-applies its own
   `Theme.Main.*` at runtime from the settings flow. The fork diverts `getThemeRes` instead.
+- **Material You is a runtime overlay now, and the house theme must skip it** (`v0.7.8`). Upstream's
+  `MainActivity.applyTheme` lays `ThemeOverlay.Material3.DynamicColors.*` over whatever `setTheme`
+  applied when dynamic colours are on; the `Theme.Main.Dynamic*` styles are empty aliases. Our
+  `applyTheme` returns before the overlay whenever `houseThemeActive` — otherwise the wallpaper's
+  accent paints over the black-yellow knobs. Light + dynamic still gets upstream's overlay, so the
+  escape hatch is upstream's real Material You.
 - **`activity.delegate.createView` returns null for anything AppCompat does not substitute.**
   The tinting inflater therefore sees `TextView`/`Button`/… but never `MaterialToolbar`,
   `TabLayout`, `MaterialCardView` or a plain `ViewGroup`. Those are covered by the per-fragment

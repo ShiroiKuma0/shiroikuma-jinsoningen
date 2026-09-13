@@ -33,7 +33,7 @@ the plain `+NNN` versionName.
    git fetch upstream --tags
    git tag --sort=-version:refname | head -5          # newest upstream tags
    git describe --tags --exact-match main 2>/dev/null # the tag main currently sits on
-   git show <newtag>:app/build.gradle.kts | grep -E 'latestVersionName|versionCode = '
+   git show <newtag>:app/build.gradle.kts | grep -E '^\s*version(Name|Code) = '
    ```
    If the newest tag is the one `main` already points at, stop and report "already current" — do
    **not** sync just because commits landed on `upstream/main`.
@@ -97,9 +97,10 @@ the plain `+NNN` versionName.
    git rebase main
    ```
    Resolve conflicts so **all** our customizations survive (table in step 6). Upstream's
-   `latestVersionName` / `versionCode` literals in `app/build.gradle.kts` flow in automatically — keep
-   **upstream's** values for those two lines; our fork lines sit right after them and derive from
-   them, so they are never edited by hand.
+   `versionName = "…"` / `versionCode = …` literals in `defaultConfig` of `app/build.gradle.kts` flow
+   in automatically — keep **upstream's** values for those two lines; our fork lines sit right after
+   them and derive from them, so they are never edited by hand. (Until `v0.7.7` the name was a
+   `val latestVersionName` above `android { }`; `v0.7.8` made it a plain literal in `defaultConfig`.)
 
    If upstream restructured a screen we de-branded, port our change to the new structure rather than
    forcing the old diff. Droid-ify is **mid-migration from Fragments to Compose**, so a screen we
@@ -124,7 +125,7 @@ the plain `+NNN` versionName.
    | Code namespace | `com.looker.droidify` (**unchanged** from upstream) | `app/build.gradle.kts` → `namespace` |
    | App label | `白い熊 人造人間` | `application_name` in `app/src/main/res/values/strings.xml` |
    | Fork version block | upstream literals + `forkVersionName` / `forkVersionCode` lines after them | `app/build.gradle.kts` |
-   | `BuildConfig.VERSION_NAME` | `"$forkVersionName"`, not upstream's `"v$latestVersionName"` | `app/build.gradle.kts` → `buildTypes { all { } }` |
+   | `BuildConfig.VERSION_NAME` | AGP-generated from `defaultConfig.versionName`, i.e. our `0.7.8+001` — **no** `buildConfigField` block of our own (dropped with upstream's in `v0.7.8`); the User-Agent and the Settings version row both read it | `app/build.gradle.kts` → `defaultConfig`, `di/NetworkModule.kt` |
    | Signing config | `keystore.properties` block + `signingConfig` on `release` | `app/build.gradle.kts` |
    | `buildFork` task + `archivesName` | present at the end of the script | `app/build.gradle.kts` |
    | Build tail | `BUILD_NUMBER=1` | `gradle.properties` |

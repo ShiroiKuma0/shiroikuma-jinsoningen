@@ -25,7 +25,7 @@ commit/push still waits for 白い熊's explicit **"Push"**.
 1. **Note the output filename.** The version base comes from upstream's own literals in the build
    script, the tail from `gradle.properties`:
    ```bash
-   grep -E 'latestVersionName|versionCode = ' app/build.gradle.kts   # upstream's two literals
+   grep -E '^\s*version(Name|Code) = ' app/build.gradle.kts   # upstream's two literals come first
    grep -E '^BUILD_NUMBER' gradle.properties    # the N used for THIS build, before the task bumps it
    ```
    - APK will be `shiroikuma-jinsoningen_<upstream versionName>+<NNN>.apk`, the counter **zero-padded
@@ -80,7 +80,8 @@ still succeeds but the APK is **unsigned** and will not install.
 ## Notes / invariants
 
 - **Toolchain:** Gradle wrapper 9.7.1 on JDK 21, which is also what compiles (no toolchain block);
-  Android SDK at `~/android-sdk`; `compileSdk 36`, `minSdk 23`; configuration cache on.
+  Android SDK at `~/android-sdk`; `compileSdk 37.1` (`release(37) { minorApiLevel = 1 }`),
+  `minSdk 23`; configuration cache on.
 - **Minified release** — upstream ships `isMinifyEnabled = true` + `isShrinkResources = true`. If a
   Compose/Hilt/Room class disappears at runtime, the fix is a keep rule in `app/proguard.pro`, not
   turning minification off.
