@@ -3,6 +3,83 @@
 Everything this fork adds on top of stock [Droid-ify](https://github.com/Droid-ify/client).
 Upstream's own changelog lives in `metadata/en-US/changelogs/`.
 
+## 0.7.8+001 — 2026-09-13
+
+Built on upstream **`v0.7.8`** (the previous base was `v0.7.7`). A sync release with no new fork
+feature. Upstream's own notes list four fixes; the one that mattered here was the Material You
+rewrite, which rebuilt the exact function the fork's theme diversion lives in.
+
+### What upstream brings
+
+- **Material You is a runtime overlay now.** The three `Theme.Main.Dynamic*` styles lose their ~90
+  hand-mapped `system_accent` / `system_neutral` colours and become empty aliases of the plain
+  styles; instead `MainActivity.applyTheme` lays Material's own
+  `ThemeOverlay.Material3.DynamicColors.{Light,Dark}` over whatever `setTheme` applied, plus a new
+  `ThemeOverlay.Main.Amoled` for the black variants. Dynamic colours follow the wallpaper again on
+  Android 12+ instead of a stale mapping. `getThemeRes` is rewritten around new `isNightMode`,
+  `isDarkTheme` and `isAmoledTheme` helpers.
+- **A repository import restores the state you had.** `importRepos` used to skip every address it
+  already knew; it now updates an existing repository's enabled flag and authentication from the
+  import, and clears `lastModified` / `entityTag` when the enabled flag flips so the next sync
+  refetches. This changes what a 保存復元 restore of the `repositories` category does on a phone
+  that already has the repositories — it re-applies their state rather than leaving them as found.
+- **A scanned repository QR code opens the add-repository form**, pre-filled. Upstream fixed this
+  with `mainActivity.navigateAddRepository(repoAddress = content)` — the very call the fork's
+  `0.7.6+001` patch used, so that patch is upstream's now and drops out of the fork's history.
+- **The root installer no longer deletes the APK it just installed** (the `DELETE_COMMAND` /
+  `utilBox` path is gone).
+- **Plurals carry their number** — `%d day(s)` / `%d hour(s)` in every language, with
+  `toDisplayString` using `pluralStringResource(res, n, n)`, so sync-interval labels read
+  "2 hours" rather than a bare noun. Applied to all ~45 translations with `sed`.
+- **The version comes from the package now.** `val latestVersionName` is gone — `versionName` is a
+  plain literal in `defaultConfig` — the `buildConfigField VERSION_NAME` block is deleted, and the
+  Settings version row reads `packageManager.getPackageInfoCompat().versionName`.
+- **Toolchain:** compileSdk 37.1 (`release(37) { minorApiLevel = 1 }`), AGP 9.3.1 → 9.4.0, Kotlin
+  2.3.10 → 2.4.20 (with `-Xcontext-parameters` dropped, context parameters being stable now), and
+  fifteen library bumps — Material 1.14.0, AppCompat 1.8.0, core 1.19.0, Fragment 1.9.0, Lifecycle
+  2.11.0, Coil 3.6.2, OkHttp 5.5.0, Hilt 2.60.1, Jackson 2.22.2, coroutines and serialization
+  1.11.0, sqlite 2.7.0, WorkManager 2.11.2, JUnit 6.1.3, mockk 1.14.11.
+- Refactors that change nothing visible: `bundleOf` → explicit `Bundle()` in four fragments,
+  `stringResource` instead of `context.getString` in `ReleaseItem`, `preferences.edit {}`,
+  `Locale.forLanguageTag`, deprecation cleanups, and five unused resources removed (the old
+  `settings_page` / `enum_type` / `switch_type` layouts, `ic_apk_install`, `ic_language`).
+- **Upstream is moving to Codeberg.** The README now calls GitHub a mirror of
+  `codeberg.org/droidify/client`; releases stay on GitHub "until the migration finishes", so the
+  fork's `upstream` remote is unchanged for now. The two release notifiers are merged into one
+  `notify.yml`, and `release_build.yml` attaches the store changelog. Nine Weblate commits and a
+  README/banner redesign round it out.
+
+### What the fork had to port
+
+- **The house theme must skip the overlay.** Upstream's new `applyTheme(theme, dynamicTheme)` has
+  the exact name and signature of the fork's, and with dynamic colours on it would lay the
+  wallpaper's accent straight over the black-yellow knobs. The merged function publishes
+  `houseThemeActive`, applies the theme, and returns before the overlay whenever the house theme is
+  active; Light + dynamic keeps upstream's overlay, so the Light escape hatch is now upstream's real
+  Material You rather than the old hand-mapped one. `isLightTheme` is defined as `!isDarkTheme`,
+  upstream's own helper, and `stockThemeRes` is upstream's new body.
+- **`BuildConfig.VERSION_NAME` needs no fork block any more.** The fork used to mirror upstream's
+  `buildConfigField` with its own value; with that block gone, AGP's generated constant comes from
+  `defaultConfig.versionName`, which the fork tail already sets to `0.7.8+001`. The User-Agent
+  (`shiroikuma-jinsoningen/0.7.8+001-release`) and the Settings version row both read our version
+  without a line of fork code.
+- **The Settings version row** keeps our title and GitHub link over upstream's package-info value.
+- **The new `notify.yml` is removed** along with the modified `release_build.yml`. GitHub registers
+  workflows from the default branch, which is `custom`, so with the directory gone nothing is
+  listed and nothing can fire on a release — the server-side disable of old is no longer even a
+  thing to maintain.
+
+### Packaging
+
+- `versionName` `0.7.8+001`, `versionCode` `7800001` (`780 × 10000 + 1`) — the build counter resets
+  to `001` on every upstream sync.
+- Built against compileSdk 37.1 on AGP 9.4.0 / Kotlin 2.4.20, Gradle 9.7.1 on JDK 21.
+
+### Known limitation
+
+The fast scrollbar's thumb still reads the static theme (see `0.7.7+001`); nothing in this release
+changes that.
+
 ## 0.7.7+001 — 2026-09-05
 
 Built on upstream **`v0.7.7`** (the previous base was `v0.7.6`). A sync release with no new fork

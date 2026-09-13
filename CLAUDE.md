@@ -294,6 +294,7 @@ every upstream sync, so the base changes down this table.
 | `0.7.6+005` | `v0.7.6` | the 保存復元 automation contract v2 — the data door (`AutomationProvider` import), the switch on by default and the token opt-in |
 | `0.7.6+008` | `v0.7.6` | every foreground-service start guarded, and a refused one answered instead of crashing the process |
 | `0.7.7+001` | `v0.7.7` | sync release, no fork feature change — upstream's scrollbar replacing the scroll-up FAB, the home-screen memory leak, `{{source_code}}` for custom buttons, the RTL screenshot fix; our "Update all" work ported onto upstream's rewritten routing (the tap now goes through `TabsFragment`) |
+| `0.7.8+001` | `v0.7.8` | sync release, no fork feature change — upstream's Material You rewrite (a runtime overlay the house theme now skips), repository import that restores enabled/auth state, the QR-scan fix landing upstream's way, the root installer keeping its APK, numbered plurals, compileSdk 37.1 / Kotlin 2.4.20; our `VERSION_NAME` block retired in favour of AGP's generated constant |
 
 ## Commit convention — no Claude attribution
 
